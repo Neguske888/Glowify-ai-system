@@ -1,1 +1,5 @@
 .aider*
+node_modules/
+.next/
+dist/
+.aider*
