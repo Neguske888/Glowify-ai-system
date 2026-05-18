@@ -1,0 +1,24 @@
+model AIInsight {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String         @map("tenant_id") @db.Uuid
+  priority        Int
+  title           String
+  description     String
+  impactEstimate  Decimal?       @map("impact_estimate") @db.Decimal(12, 2)
+  recommendation  String
+  automationAction Json?         @map("automation_action")
+  status          InsightStatus  @default(pending)
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("ai_insights")
+}
+
+enum InsightStatus {
+  pending
+  approved
+  executed
+  dismissed
+}
