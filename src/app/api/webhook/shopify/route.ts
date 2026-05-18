@@ -19,7 +19,25 @@ export async function POST(req: Request) {
   }
 
   const data = JSON.parse(body);
-  const storeId = req.headers.get('x-shopify-shop-domain');
+  const shopDomain = req.headers.get('x-shopify-shop-domain');
+
+  if (!shopDomain) {
+    return NextResponse.json({ error: 'Missing shop domain header' }, { status: 400 });
+  }
+
+  // Lookup store UUID
+  const { data: store, error: storeError } = await supabase
+    .from('stores')
+    .select('id')
+    .eq('shopify_domain', shopDomain)
+    .single();
+
+  if (storeError || !store) {
+    console.error(`Store not found for domain: ${shopDomain}`);
+    return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+  }
+
+  const storeId = store.id;
 
   // Log event
   await supabase.from('automation_logs').insert({
