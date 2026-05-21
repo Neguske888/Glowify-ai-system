@@ -1,16 +1,31 @@
-# React + Vite
+# Glowify AI Executive Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+The **Glowify AI Executive Dashboard** is a high-performance, real-time analytics and management interface designed for direct-to-consumer beauty brands. Built to empower store owners with actionable insights, it integrates seamlessly with Shopify, Meta, Google, and Klaviyo ecosystems.
 
-Currently, two official plugins are available:
+## Core Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **AI-Powered Command Center:** Real-time monitoring of AI-driven business automations, health scoring, and actionable task management.
+- **Performance Analytics:** Comprehensive revenue tracking with multi-period comparison (7D/30D/60D), channel attribution, and conversion funnel analysis.
+- **Marketing Hub:** Centralized management of ad spend, ROAS trends across meta/google platforms, and email campaign performance.
+- **Product Intelligence:** Inventory health monitoring, SKU-level margin analysis, and data-backed product bundling opportunities.
+- **Customer Insights:** In-depth customer segmentation, retention curve tracking, and geo-specific revenue analysis.
+- **Automation Center:** Full control over active business automations with real-time impact attribution and revenue reporting.
 
-## React Compiler
+## Technical Architecture
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend:** React (TypeScript) with Vite, styled with Vanilla CSS for a polished, performant UI.
+- **Visualization:** Data-driven visualizations powered by `recharts`.
+- **Backend/Integrations:** Built on the Supabase ecosystem, utilizing Edge Functions for real-time Shopify synchronization.
+- **Authenticatiion:** Secured with Firebase Auth.
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. **Clone the repository:** `git clone https://github.com/your-repo-link.git`
+2. **Install dependencies:** `npm install`
+3. **Environment setup:** Configure your `.env` with Firebase and Supabase credentials.
+4. **Development:** `npm run dev`
+5. **Production Build:** `npm run build`
+
+## License
+
+Confidential — Glowify Beauty Co.
