@@ -34,3 +34,33 @@ export async function middleware(req: NextRequest) {
 
   return NextResponse.next();
 }
+
+/**
+ * Authenticates an incoming request using the API key in the headers.
+ */
+export async function authenticateRequest(req: NextRequest) {
+  const apiKey = req.headers.get('x-api-key');
+  if (!apiKey) return null;
+
+  try {
+    const { prisma } = await import('../../packages/database/client');
+    const apiKeyDoc = await (prisma as any).aPIKey.findUnique({
+      where: { key: apiKey },
+      include: { tenant: true },
+    });
+    return apiKeyDoc;
+  } catch (error) {
+    console.error('Error authenticating request via API key:', error);
+    return null;
+  }
+}
+
+/**
+ * Enforces Safe Mode restrictions by blocking certain paths.
+ */
+export function enforceSafeMode(safeMode: boolean, path: string) {
+  if (safeMode && (path.startsWith('/api/execute') || path.includes('/execute'))) {
+    throw new Error('SAFE_MODE_BLOCK');
+  }
+}
+
