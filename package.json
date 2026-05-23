@@ -10,11 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.10.3",
-    "@supabase/supabase-js": "^2.106.0",
     "bullmq": "^5.76.10",
     "firebase": "^12.13.0",
-    "firebase-admin": "^13.10.0",
     "ioredis": "^5.10.1",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
