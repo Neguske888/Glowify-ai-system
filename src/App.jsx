@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { firebaseAuth, firestoreHelpers } from './lib/firebase'
 import { 
   Zap, Bot, Activity, BarChart3, TestTube2, Settings, Search, Bell, 
   ChevronDown, Globe, CreditCard, LogOut, TrendingUp, AlertCircle, 
   CheckCircle2, Play, Pause, RefreshCw, X, ArrowRight, Shield, 
   Cpu, Database, LayoutGrid, Terminal, Download, Plus, Mail, MessageSquare, 
-  Eye, EyeOff, Trash2, Clock, ZapOff, Users, Menu, RefreshCcw
+  Eye, EyeOff, Trash2, Clock, ZapOff, Users, Menu, RefreshCcw, Home, BarChart2 as BarChart2Icon, Megaphone, Package, User, ShoppingBag
 } from 'lucide-react';
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -92,6 +91,73 @@ const AI_INSIGHTS = [
   {id:2,type:'OPPORTUNITY',color:'#6366F1',bg:'rgba(99,102,241,0.1)',border:'rgba(99,102,241,0.25)',title:'Bundle Upsell Untapped',desc:'67% of Vitamin C buyers view Retinol. A bundle could recover $12K/month.',dismissed:false},
   {id:3,type:'TREND',color:'#10B981',bg:'rgba(16,185,129,0.1)',border:'rgba(16,185,129,0.25)',title:'Mobile Revenue Up 28%',desc:'Mobile now drives 61% of orders. Consider mobile-first creatives.',dismissed:false},
 ]
+
+const AuthScreen = ({ onAuthSuccess }) => {
+  const [email, setEmail] = useState('admin@glowify.ai')
+  const [password, setPassword] = useState('password123')
+  const [fullName, setFullName] = useState('Alex Johnson')
+  const [confirmPassword, setConfirmPassword] = useState('password123')
+  const [storeName, setStoreName] = useState('Glowify Beauty Co.')
+  const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [authError, setAuthError] = useState(null)
+  const clearMessages = () => setAuthError(null)
+
+  const handleLogin = async () => {
+    if (!email || !password) { setAuthError('Please fill in all fields.'); return }
+    clearMessages(); setLoading(true)
+    
+    if (email === 'admin@glowify.ai' && password === 'password123') {
+        const mockUser = {
+            uid: 'mock-user-123',
+            email: email,
+            displayName: 'Alex Johnson',
+            storeName: 'Glowify Beauty Co.'
+        }
+        setLoading(false)
+        onAuthSuccess(mockUser)
+        return
+    }
+
+    const { user, error } = await firebaseAuth.signInWithEmail(email, password)
+    setLoading(false)
+    if (error) { setAuthError(error); return }
+    if (user) { console.log('Glowify AuthScreen: calling onAuthSuccess'); onAuthSuccess(user) }
+  }
+
+  const handleSignup = async () => {
+    if (!fullName||!email||!password||!confirmPassword) { setAuthError('Please fill in all fields.'); return }
+    if (password!==confirmPassword) { setAuthError('Passwords do not match.'); return }
+    if (password.length<6) { setAuthError('Password must be at least 6 characters.'); return }
+    clearMessages(); setLoading(true)
+    const { user, error } = await firebaseAuth.signUpWithEmail(email, password, fullName, storeName)
+    setLoading(false)
+    if (error) { setAuthError(error); return }
+    if (user) onAuthSuccess(user)
+  }
+
+  const handleGoogle = async () => {
+    clearMessages(); setGoogleLoading(true)
+    const { user, error } = await firebaseAuth.signInWithGoogle()
+    setGoogleLoading(false)
+    if (error) { setAuthError(error); return }
+    if (user) onAuthSuccess(user)
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#0A0A0F', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+        <div style={{ background: '#111118', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '100%' }}>
+            <h2 style={{ color: 'white', marginBottom: '24px' }}>Sign In to Glowify</h2>
+            <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ width: '100%', marginBottom: '16px', padding: '12px', borderRadius: '8px', background: '#0A0A0F', border: '1px solid #374151', color: 'white' }} />
+            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} style={{ width: '100%', marginBottom: '16px', padding: '12px', borderRadius: '8px', background: '#0A0A0F', border: '1px solid #374151', color: 'white' }} />
+            <button onClick={handleLogin} style={{ width: '100%', padding: '12px', borderRadius: '8px', background: '#6366F1', color: 'white', fontWeight: 'bold' }}>
+                {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+            {authError && <p style={{ color: '#EF4444', marginTop: '16px', fontSize: '12px' }}>{authError}</p>}
+        </div>
+    </div>
+  )
+}
 
 const App = () => {
   const [firebaseUser,  setFirebaseUser]  = React.useState(undefined)
@@ -185,49 +251,50 @@ const App = () => {
 
   if(!firebaseUser){return(<AuthScreen onAuthSuccess={(user)=>{console.log('Glowify: onAuthSuccess uid:',user?.uid);setFirebaseUser(user);setAuthReady(true)}}/>)}
 
-  return null
-}
-
-const AuthScreen = ({ onAuthSuccess }) => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [storeName, setStoreName] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
-  const [authError, setAuthError] = useState(null)
-  const clearMessages = () => setAuthError(null)
-
-  const handleLogin = async () => {
-    if (!email || !password) { setAuthError('Please fill in all fields.'); return }
-    clearMessages(); setLoading(true)
-    const { user, error } = await firebaseAuth.signInWithEmail(email, password)
-    setLoading(false)
-    if (error) { setAuthError(error); return }
-    if (user) { console.log('Glowify AuthScreen: calling onAuthSuccess'); onAuthSuccess(user) }
-  }
-
-  const handleSignup = async () => {
-    if (!fullName||!email||!password||!confirmPassword) { setAuthError('Please fill in all fields.'); return }
-    if (password!==confirmPassword) { setAuthError('Passwords do not match.'); return }
-    if (password.length<6) { setAuthError('Password must be at least 6 characters.'); return }
-    clearMessages(); setLoading(true)
-    const { user, error } = await firebaseAuth.signUpWithEmail(email, password, fullName, storeName)
-    setLoading(false)
-    if (error) { setAuthError(error); return }
-    if (user) onAuthSuccess(user)
-  }
-
-  const handleGoogle = async () => {
-    clearMessages(); setGoogleLoading(true)
-    const { user, error } = await firebaseAuth.signInWithGoogle()
-    setGoogleLoading(false)
-    if (error) { setAuthError(error); return }
-    if (user) onAuthSuccess(user)
-  }
-
-  return null
+  return (
+    <div className="flex h-screen bg-[#0A0A0F] text-slate-300">
+      <aside className="w-64 bg-[#07070B] border-r border-[#1E1E2E] p-6 flex flex-col">
+        <div className="flex items-center gap-3 mb-10">
+          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-bold">G</div>
+          <h1 className="text-white font-bold text-lg tracking-tight">Glowify AI</h1>
+        </div>
+        <nav className="flex flex-col gap-1.5">
+          <button className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all bg-indigo-600/10 text-indigo-400 font-semibold"><Home size={18} />Overview</button>
+          <button onClick={async()=>{await firebaseAuth.signOut();setFirebaseUser(null);setUserProfile(null);setAuthReady(true)}} className="flex items-center gap-3 px-3 py-2.5 mt-10 rounded-xl text-sm text-red-500 hover:bg-red-500/10 transition-all"><LogOut size={18} />Sign Out</button>
+        </nav>
+        <div className="mt-auto p-4 bg-[#111118] border border-[#1E1E2E] rounded-2xl flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-xs">{userProfile?.displayName?.charAt(0) || 'U'}</div>
+          <div className="overflow-hidden">
+            <p className="text-xs font-bold text-white truncate">{userProfile?.displayName || 'User'}</p>
+            <p className="text-[10px] text-[#6B7280] truncate">{firebaseUser?.email}</p>
+          </div>
+        </div>
+      </aside>
+      <main className="flex-1 p-8 overflow-y-auto">
+        <header className="flex items-center justify-between mb-8">
+           <div>
+             <h2 className="text-2xl font-bold text-white tracking-tight">Overview</h2>
+             <p className="text-xs text-[#6B7280] mt-1">Real-time intelligence from all your channels</p>
+           </div>
+        </header>
+        <div className="grid grid-cols-4 gap-4 mb-6">
+            <div className="bg-[#111118] border border-[#1E1E2E] rounded-2xl p-4"><p className="text-xs text-[#6B7280]">Revenue</p><p className="text-2xl font-bold text-white">${liveMetrics.todayRevenue.toLocaleString()}</p></div>
+            <div className="bg-[#111118] border border-[#1E1E2E] rounded-2xl p-4"><p className="text-xs text-[#6B7280]">Orders</p><p className="text-2xl font-bold text-white">{liveMetrics.todayOrders.toLocaleString()}</p></div>
+            <div className="bg-[#111118] border border-[#1E1E2E] rounded-2xl p-4"><p className="text-xs text-[#6B7280]">Visitors</p><p className="text-2xl font-bold text-white">{liveMetrics.activeVisitors.toLocaleString()}</p></div>
+            <div className="bg-[#111118] border border-[#1E1E2E] rounded-2xl p-4"><p className="text-xs text-[#6B7280]">Last Order</p><p className="text-2xl font-bold text-white">{liveMetrics.lastOrderTime}</p></div>
+        </div>
+        <div className="bg-[#111118] border border-[#1E1E2E] rounded-2xl p-6">
+            <h3 className="text-lg font-bold mb-4">Revenue Trends</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={displayRevenue}>
+                <Area type="monotone" dataKey="revenue" stroke="#6366F1" fill="#6366F120" />
+                <Tooltip />
+              </AreaChart>
+            </ResponsiveContainer>
+        </div>
+      </main>
+    </div>
+  );
 }
 
 export default App

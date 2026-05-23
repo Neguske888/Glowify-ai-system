@@ -282,43 +282,43 @@ export const firestoreHelpers = {
       ].forEach(a => batch.set(doc(collection(db,'users',uid,'automations')), {...a,createdAt:serverTimestamp()}))
 
       ;[
-        {icon:'Zap',title:'Paused underperforming Facebook Ad Set #7',result:'Saved 40 in wasted spend',time:'Today 9:14am',status:'Completed',impact:340},
-        {icon:'Mail',title:'Sent win-back campaign to 1,840 lapsed customers',result:',200 recovered in 48h',time:'Yesterday 2:00pm',status:'Completed',impact:6200},
+        {icon:'Zap',title:'Paused underperforming Facebook Ad Set #7',result:'Saved 340 in wasted spend',time:'Today 9:14am',status:'Completed',impact:340},
+        {icon:'Mail',title:'Sent win-back campaign to 1,840 lapsed customers',result:'6,200 recovered in 48h',time:'Yesterday 2:00pm',status:'Completed',impact:6200},
         {icon:'Package',title:'Triggered restock PO for Vitamin C Serum',result:'120 units ordered from supplier',time:'Yesterday 10:30am',status:'Completed',impact:0},
         {icon:'TrendingUp',title:'Scaled Google Shopping budget +30%',result:'ROAS at 5.2x within target',time:'May 16',status:'Completed',impact:4200},
         {icon:'AlertCircle',title:'Detected mobile checkout bug on Safari',result:'Flagged for dev team — ticket #1094',time:'May 15',status:'Running',impact:0},
-        {icon:'Mail',title:'Launched Flash Sale to VIP segment',result:'41% open rate — 4,800 GMV',time:'May 14',status:'Completed',impact:14800},
+        {icon:'Mail',title:'Launched Flash Sale to VIP segment',result:'41% open rate — 14,800 GMV',time:'May 14',status:'Completed',impact:14800},
         {icon:'Zap',title:'A/B test on PDP hero image started',result:'Variant B winning by 12% CTR',time:'May 12',status:'Running',impact:0},
         {icon:'Package',title:'Auto-repriced 14 SKUs vs competitors',result:'Avg margin improved +2.3%',time:'May 10',status:'Completed',impact:2100},
       ].forEach(a => batch.set(doc(collection(db,'users',uid,'ai_actions')), {...a,createdAt:serverTimestamp()}))
 
       ;[
-        {type:'order',color:'#10B981',text:'Order #8821 — New York, US',amount:'42.00',time:'1 min ago'},
-        {type:'order',color:'#10B981',text:'Order #8820 — London, UK',amount:'9.00',time:'3 min ago'},
+        {type:'order',color:'#10B981',text:'Order #8821 — New York, US',amount:'142.00',time:'1 min ago'},
+        {type:'order',color:'#10B981',text:'Order #8820 — London, UK',amount:'89.00',time:'3 min ago'},
         {type:'marketing',color:'#6366F1',text:'Flash Sale email sent to 4,200 subscribers',amount:null,time:'8 min ago'},
         {type:'alert',color:'#F59E0B',text:'Stock alert: Retinol Cream below 20 units',amount:null,time:'12 min ago'},
-        {type:'order',color:'#10B981',text:'Order #8819 — Toronto, CA',amount:'10.00',time:'14 min ago'},
+        {type:'order',color:'#10B981',text:'Order #8819 — Toronto, CA',amount:'210.00',time:'14 min ago'},
         {type:'marketing',color:'#6366F1',text:'Facebook Campaign #3 hit daily spend cap',amount:null,time:'22 min ago'},
-        {type:'order',color:'#10B981',text:'Order #8818 — Sydney, AU',amount:'7.00',time:'28 min ago'},
-        {type:'automation',color:'#8B5CF6',text:'Abandoned cart recovery — 40 recovered',amount:'40.00',time:'35 min ago'},
+        {type:'order',color:'#10B981',text:'Order #8818 — Sydney, AU',amount:'67.00',time:'28 min ago'},
+        {type:'automation',color:'#8B5CF6',text:'Abandoned cart recovery — 340 recovered',amount:'340.00',time:'35 min ago'},
         {type:'alert',color:'#EF4444',text:'Conversion drop on /collections/skincare',amount:null,time:'41 min ago'},
-        {type:'order',color:'#10B981',text:'Order #8817 — Chicago, US',amount:'89.00',time:'47 min ago'},
+        {type:'order',color:'#10B981',text:'Order #8817 — Chicago, US',amount:'189.00',time:'47 min ago'},
         {type:'marketing',color:'#10B981',text:'Google Shopping ROAS reached 5.2x',amount:null,time:'1h ago'},
-        {type:'order',color:'#10B981',text:'Order #8816 — Berlin, DE',amount:'3.00',time:'1h 10m ago'},
+        {type:'order',color:'#10B981',text:'Order #8816 — Berlin, DE',amount:'93.00',time:'1h 10m ago'},
       ].forEach(a => batch.set(doc(collection(db,'users',uid,'activity_feed')), {...a,createdAt:serverTimestamp()}))
 
       ;[
-        {name:'Spring Glow Sale',platform:'Meta',budget:'00/d',spent:',840',roas:'3.8x',metric:'2.1% CTR',status:'Active',action:'View'},
-        {name:'Retinol Awareness',platform:'Meta',budget:'0/d',spent:'40',roas:'2.9x',metric:'1.4% CTR',status:'Underperforming',action:'Pause'},
-        {name:'Google Shopping — Serums',platform:'Google',budget:'50/d',spent:',380',roas:'5.6x',metric:'3.8% CTR',status:'Active',action:'Scale'},
-        {name:'Google Brand Search',platform:'Google',budget:'0/d',spent:'40',roas:'6.1x',metric:'8.2% CTR',status:'Active',action:'View'},
+        {name:'Spring Glow Sale',platform:'Meta',budget:'200/d',spent:'1,840',roas:'3.8x',metric:'2.1% CTR',status:'Active',action:'View'},
+        {name:'Retinol Awareness',platform:'Meta',budget:'80/d',spent:'740',roas:'2.9x',metric:'1.4% CTR',status:'Underperforming',action:'Pause'},
+        {name:'Google Shopping — Serums',platform:'Google',budget:'150/d',spent:'1,380',roas:'5.6x',metric:'3.8% CTR',status:'Active',action:'Scale'},
+        {name:'Google Brand Search',platform:'Google',budget:'60/d',spent:'540',roas:'6.1x',metric:'8.2% CTR',status:'Active',action:'View'},
         {name:'VIP Win-Back Email',platform:'Klaviyo',budget:'—',spent:'—',roas:'—',metric:'44% OR',status:'Sent',action:'Report'},
         {name:'Flash Sale Blast',platform:'Klaviyo',budget:'—',spent:'—',roas:'—',metric:'38% OR',status:'Sent',action:'Report'},
       ].forEach(c => batch.set(doc(collection(db,'users',uid,'campaigns')), {...c,createdAt:serverTimestamp()}))
 
       ;[
         {type:'WARNING',color:'#F59E0B',bg:'rgba(245,158,11,0.1)',border:'rgba(245,158,11,0.25)',title:'Ad Frequency Too High',desc:'Facebook ad frequency hit 4.8x. Rotate new ad sets within 48h.',dismissed:false},
-        {type:'OPPORTUNITY',color:'#6366F1',bg:'rgba(99,102,241,0.1)',border:'rgba(99,102,241,0.25)',title:'Bundle Upsell Untapped',desc:'67% of Vitamin C buyers view Retinol. A bundle could recover 2K/month.',dismissed:false},
+        {type:'OPPORTUNITY',color:'#6366F1',bg:'rgba(99,102,241,0.1)',border:'rgba(99,102,241,0.25)',title:'Bundle Upsell Untapped',desc:'67% of Vitamin C buyers also view Retinol. A bundle could recover 12K/month.',dismissed:false},
         {type:'TREND',color:'#10B981',bg:'rgba(16,185,129,0.1)',border:'rgba(16,185,129,0.25)',title:'Mobile Revenue Up 28%',desc:'Mobile now drives 61% of orders. Consider mobile-first creatives.',dismissed:false},
       ].forEach(ins => batch.set(doc(collection(db,'users',uid,'ai_insights')), {...ins,createdAt:serverTimestamp()}))
 

@@ -201,7 +201,10 @@ const AuthScreen = ({ onAuthSuccess }) => {
         email: email,
         displayName: 'Alex Johnson',
         storeName: 'Glowify Beauty Co.',
-        photoURL: 'https://ui-avatars.com/api/?name=Alex+Johnson'
+        photoURL: 'https://ui-avatars.com/api/?name=Alex+Johnson',
+        isMock: true,
+        role: 'admin',
+        createdAt: new Date().toISOString()
       }
       onAuthSuccess(mockUser)
       return
