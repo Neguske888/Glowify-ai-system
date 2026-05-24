@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
+const app = !getApps().length 
+  ? initializeApp({ credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)) }) 
+  : getApps()[0];
+const db = getFirestore(app);
 
 export async function POST(req: Request) {
   const hmac = req.headers.get('x-shopify-hmac-sha256');
@@ -26,32 +30,31 @@ export async function POST(req: Request) {
   }
 
   // Lookup store UUID
-  const { data: store, error: storeError } = await supabase
-    .from('stores')
-    .select('id')
-    .eq('shopify_domain', shopDomain)
-    .single();
+  const storesRef = db.collection('stores');
+  const querySnapshot = await storesRef.where('shopify_domain', '==', shopDomain).get();
 
-  if (storeError || !store) {
+  if (querySnapshot.empty) {
     console.error(`Store not found for domain: ${shopDomain}`);
     return NextResponse.json({ error: 'Store not found' }, { status: 404 });
   }
 
-  const storeId = store.id;
+  const storeId = querySnapshot.docs[0].id;
 
   // Log event
-  await supabase.from('automation_logs').insert({
+  await db.collection('automation_logs').add({
     store_id: storeId,
     event_type: 'order_created',
-    details: data
+    details: data,
+    created_at: new Date().toISOString()
   });
 
   // Store order
-  await supabase.from('orders').insert({
+  await db.collection('orders').add({
     store_id: storeId,
     shopify_order_id: data.id,
     total_price: data.total_price,
-    currency: data.currency
+    currency: data.currency,
+    created_at: new Date().toISOString()
   });
 
   return NextResponse.json({ received: true });

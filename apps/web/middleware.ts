@@ -1,38 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+// Firebase Admin SDK should be used for server-side verification
+import { getAuth } from 'firebase-admin/auth';
+import { getApps, initializeApp, cert } from 'firebase-admin/app';
 
-// Middleware to inject tenant context into PostgreSQL
+// Initialize Firebase Admin
+if (!getApps().length) {
+  initializeApp({
+    credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)),
+  });
+}
+
+// Middleware to protect routes and verify Firebase session
 export async function middleware(req: NextRequest) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-
-  // 1. Get session from request
+  // 1. Get session token from headers (Authorization: Bearer <token>)
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) return NextResponse.next();
 
   const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error } = await supabase.auth.getUser(token);
 
-  if (error || !user) return NextResponse.next();
-
-  // 2. Extract tenant_id from user metadata (injected during sign up)
-  const tenantId = user.user_metadata.tenant_id;
-
-  if (tenantId) {
-    // 3. Inject into request headers for downstream database clients to pick up
+  try {
+    // 2. Verify Firebase Auth token
+    const decodedToken = await getAuth().verifyIdToken(token);
+    
+    // 3. Inject user context into headers if needed
     const requestHeaders = new Headers(req.headers);
-    requestHeaders.set('x-tenant-id', tenantId);
+    requestHeaders.set('x-user-uid', decodedToken.uid);
 
     return NextResponse.next({
       request: {
         headers: requestHeaders,
       },
     });
+  } catch (error) {
+    console.error('Error verifying Firebase token:', error);
+    // Token invalid or expired, proceed without user context
+    return NextResponse.next();
   }
-
-  return NextResponse.next();
 }
 
 /**
@@ -63,4 +66,3 @@ export function enforceSafeMode(safeMode: boolean, path: string) {
     throw new Error('SAFE_MODE_BLOCK');
   }
 }
-

@@ -1,78 +1,76 @@
 // src/lib/api.ts
 
-import { supabase } from './supabase';
+import { getFirestore, doc, getDoc, collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { getApp } from 'firebase/app';
+
+const db = getFirestore(getApp());
 
 export async function fetchDashboardData(userId: string) {
   try {
     // 0. Fetch Profile
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (profileError) throw profileError;
+    const profileDoc = await getDoc(doc(db, 'profiles', userId));
+    const profile = profileDoc.exists() ? profileDoc.data() : null;
 
     // 1. Fetch KPIs & Revenue Snapshots (last 60 days)
-    const { data: snapshots, error: snapshotsError } = await supabase
-      .from('revenue_snapshots')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('channel', 'all')
-      .order('snapshot_date', { ascending: true })
-      .limit(60);
-
-    if (snapshotsError) throw snapshotsError;
+    const snapshotsQuery = query(
+      collection(db, 'revenue_snapshots'),
+      where('user_id', '==', userId),
+      where('channel', '==', 'all'),
+      orderBy('snapshot_date', 'asc'),
+      limit(60)
+    );
+    const snapshotsSnap = await getDocs(snapshotsQuery);
+    const snapshots = snapshotsSnap.docs.map(doc => doc.data());
 
     // 2. Fetch Products
-    const { data: products, error: productsError } = await supabase
-      .from('products')
-      .select('*')
-      .eq('user_id', userId)
-      .order('units_sold', { ascending: false })
-      .limit(8);
-
-    if (productsError) throw productsError;
+    const productsQuery = query(
+      collection(db, 'products'),
+      where('user_id', '==', userId),
+      orderBy('units_sold', 'desc'),
+      limit(8)
+    );
+    const productsSnap = await getDocs(productsQuery);
+    const products = productsSnap.docs.map(doc => doc.data());
 
     // 3. Fetch AI Insights
-    const { data: insights, error: insightsError } = await supabase
-      .from('ai_insights')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_dismissed', false)
-      .order('priority', { ascending: true })
-      .limit(5);
-
-    if (insightsError) throw insightsError;
+    const insightsQuery = query(
+      collection(db, 'ai_insights'),
+      where('user_id', '==', userId),
+      where('is_dismissed', '==', false),
+      orderBy('priority', 'asc'),
+      limit(5)
+    );
+    const insightsSnap = await getDocs(insightsQuery);
+    const insights = insightsSnap.docs.map(doc => doc.data());
 
     // 4. Fetch AI Actions
-    const { data: actions, error: actionsError } = await supabase
-      .from('ai_actions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('executed_at', { ascending: false })
-      .limit(5);
-
-    if (actionsError) throw actionsError;
+    const actionsQuery = query(
+      collection(db, 'ai_actions'),
+      where('user_id', '==', userId),
+      orderBy('executed_at', 'desc'),
+      limit(5)
+    );
+    const actionsSnap = await getDocs(actionsQuery);
+    const actions = actionsSnap.docs.map(doc => doc.data());
 
     // 5. Fetch Activity Feed
-    const { data: activity, error: activityError } = await supabase
-      .from('activity_feed')
-      .select('*')
-      .eq('user_id', userId)
-      .order('occurred_at', { ascending: false })
-      .limit(10);
-
-    if (activityError) throw activityError;
+    const activityQuery = query(
+      collection(db, 'activity_feed'),
+      where('user_id', '==', userId),
+      orderBy('occurred_at', 'desc'),
+      limit(10)
+    );
+    const activitySnap = await getDocs(activityQuery);
+    const activity = activitySnap.docs.map(doc => doc.data());
 
     // 6. Fetch Automations
-    const { data: automations, error: automationsError } = await supabase
-      .from('automations')
-      .select('*')
-      .eq('user_id', userId)
-      .order('actions_taken', { ascending: false });
-
-    if (automationsError) throw automationsError;
+    const automationsQuery = query(
+      collection(db, 'automations'),
+      where('user_id', '==', userId),
+      orderBy('actions_taken', 'desc')
+    );
+    const automationsSnap = await getDocs(automationsQuery);
+    const automations = automationsSnap.docs.map(doc => doc.data());
 
     return {
       profile,
@@ -84,7 +82,7 @@ export async function fetchDashboardData(userId: string) {
       automations
     };
   } catch (error) {
-    console.error('Failed to fetch dashboard data from Supabase:', error);
+    console.error('Failed to fetch dashboard data from Firestore:', error);
     throw error;
   }
 }

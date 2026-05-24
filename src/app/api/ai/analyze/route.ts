@@ -1,19 +1,24 @@
 import { NextResponse } from 'next/server';
 import { OpenAI } from 'openai';
-import { createClient } from '@supabase/supabase-js';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_KEY!);
+const app = !getApps().length 
+  ? initializeApp({ credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)) }) 
+  : getApps()[0];
+const db = getFirestore(app);
 
 export async function POST(req: Request) {
   const { storeId } = await req.json();
 
   // Fetch recent data for context
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('*')
-    .eq('store_id', storeId)
-    .limit(50);
+  const ordersQuery = await db.collection('orders')
+    .where('store_id', '==', storeId)
+    .limit(50)
+    .get();
+  
+  const orders = ordersQuery.docs.map(doc => doc.data());
 
   const completion = await openai.chat.completions.create({
     model: 'gpt-4o',
@@ -28,11 +33,12 @@ export async function POST(req: Request) {
 
   // Store insights
   for (const insight of insights.suggestions) {
-    await supabase.from('ai_decisions').insert({
+    await db.collection('ai_decisions').add({
       store_id: storeId,
       action_type: 'optimization',
       impact_score: insight.impact,
-      suggestion: insight
+      suggestion: insight,
+      created_at: new Date().toISOString()
     });
   }
 
