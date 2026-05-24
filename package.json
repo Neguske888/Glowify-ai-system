@@ -7,11 +7,14 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "simulate": "npx tsx src/utils/chaosSimulator.ts"
   },
   "dependencies": {
     "bullmq": "^5.76.10",
+    "dotenv": "^17.4.2",
     "firebase": "^12.13.0",
+    "firebase-admin": "^13.10.0",
     "ioredis": "^5.10.1",
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
