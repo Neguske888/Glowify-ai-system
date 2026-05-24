@@ -15,14 +15,14 @@ The **Glowify AI Executive Dashboard** is a high-performance, real-time analytic
 
 - **Frontend:** React (TypeScript) with Vite, styled with Vanilla CSS for a polished, performant UI.
 - **Visualization:** Data-driven visualizations powered by `recharts`.
-- **Backend/Integrations:** Built on the Supabase ecosystem, utilizing Edge Functions for real-time Shopify synchronization.
-- **Authenticatiion:** Secured with Firebase Auth.
+- **Backend/Integrations:** Built on Firebase, utilizing Cloud Functions for real-time Shopify synchronization.
+- **Authentication:** Secured with Firebase Auth.
 
 ## Getting Started
 
 1. **Clone the repository:** `git clone https://github.com/your-repo-link.git`
 2. **Install dependencies:** `npm install`
-3. **Environment setup:** Configure your `.env` with Firebase and Supabase credentials.
+3. **Environment setup:** Configure your `.env` with Firebase credentials.
 4. **Development:** `npm run dev`
 5. **Production Build:** `npm run build`
 

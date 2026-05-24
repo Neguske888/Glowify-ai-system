@@ -8,10 +8,6 @@ vi.mock('next/server', () => ({
   },
 }));
 
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(),
-}));
-
 import { authenticateRequest, enforceSafeMode } from '../middleware';
 import { verifyShopifyWebhook } from '../src/app/api/webhooks/shopify/utils';
 
