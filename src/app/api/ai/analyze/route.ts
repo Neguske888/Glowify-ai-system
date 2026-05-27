@@ -1,46 +1,48 @@
 import { NextResponse } from 'next/server';
-import { OpenAI } from 'openai';
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { GoogleGenAI } from '@google/genai';
+import { db } from '@/lib/firebase-admin';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const app = !getApps().length 
-  ? initializeApp({ credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)) }) 
-  : getApps()[0];
-const db = getFirestore(app);
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 
 export async function POST(req: Request) {
-  const { storeId } = await req.json();
+  try {
+    const { storeId, eventData } = await req.json();
 
-  // Fetch recent data for context
-  const ordersQuery = await db.collection('orders')
-    .where('store_id', '==', storeId)
-    .limit(50)
-    .get();
-  
-  const orders = ordersQuery.docs.map(doc => doc.data());
-
-  const completion = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    messages: [
-      { role: 'system', content: 'You are an eCommerce growth expert. Return analysis as a JSON array of objects: { "title": string, "impact": number (1-10), "description": string }' },
-      { role: 'user', content: `Analyze this store performance: ${JSON.stringify(orders)}` }
-    ],
-    response_format: { type: 'json_object' }
-  });
-
-  const insights = JSON.parse(completion.choices[0].message.content!);
-
-  // Store insights
-  for (const insight of insights.suggestions) {
-    await db.collection('ai_decisions').add({
-      store_id: storeId,
-      action_type: 'optimization',
-      impact_score: insight.impact,
-      suggestion: insight,
-      created_at: new Date().toISOString()
+    const model = ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      config: {
+        systemInstruction: `You are the "Glowify Autonomous Fleet Operator" managing "NEUROZEN LAB" (selling Lion's Mane, Reishi, and Cordyceps supplements). 
+        Your primary goal is to protect profit margins and prevent stockouts. 
+        Analyze the incoming store event and decide on necessary operational actions.`,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'object',
+          properties: {
+            reasoning: { type: 'string' },
+            actionTaken: { type: 'string', enum: ['QUANTITY_RESTOCK_TRIGGERED', 'PRICE_TIER_ADJUSTED', 'NO_ACTION_REQUIRED'] },
+            impactScore: { type: 'integer' },
+          },
+          required: ['reasoning', 'actionTaken', 'impactScore'],
+        },
+      },
     });
-  }
 
-  return NextResponse.json({ insights });
+    const result = await model.generateContent(JSON.stringify(eventData));
+    const analysis = JSON.parse(result.text());
+
+    // Append telemetry to Firestore
+    await db.collection('stores')
+      .doc(storeId)
+      .collection('agent_telemetry')
+      .add({
+        ...analysis,
+        timestamp: new Date().toISOString(),
+        eventContext: eventData,
+      });
+
+    return NextResponse.json(analysis);
+  } catch (error) {
+    console.error('AI Analysis Error:', error);
+    return NextResponse.json({ error: 'Failed to process AI analysis' }, { status: 500 });
+  }
 }
