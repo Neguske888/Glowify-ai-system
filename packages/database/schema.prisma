@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  owner
+  admin
+  staff
+}
+
+enum OrderStatus {
+  pending
+  processing
+  completed
+  cancelled
+}
+
+enum CampaignStatus {
+  draft
+  active
+  paused
+  ended
+}
+
+enum InsightStatus {
+  pending
+  approved
+  executed
+  dismissed
+}
+
+model Tenant {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  users           User[]
+  stores          Store[]
+  products        Product[]
+  orders          Order[]
+  campaigns       Campaign[]
+  aiDecisions     AIDecision[]
+  automationLogs  AutomationLog[]
+  aiInsights      AIInsight[]
+  eventLogs       EventLog[]
+  aiTraces        AITrace[]
+  executionTraces ExecutionTrace[]
+
+  @@map("tenants")
+}
+
+model EventLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  eventType String   @map("event_type")
+  payload   Json     @map("payload") @db.JsonB
+  timestamp DateTime @default(now()) @map("timestamp")
+  status    String   @map("status")
+  relatedId String?  @map("related_id")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("event_logs")
+}
+
+model AITrace {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  eventType String   @map("event_type")
+  payload   Json     @map("payload") @db.JsonB
+  timestamp DateTime @default(now()) @map("timestamp")
+  status    String   @map("status")
+  relatedId String?  @map("related_id")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("ai_trace")
+}
+
+model ExecutionTrace {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  eventType        String   @map("event_type")
+  payload          Json     @map("payload") @db.JsonB
+  timestamp        DateTime @default(now()) @map("timestamp")
+  status           String   @map("status")
+  relatedId        String?  @map("related_id")
+
+  // AI Feedback Learning Loop
+  expectedOutcome  Json?    @map("expected_outcome") @db.JsonB
+  actualOutcome    Json?    @map("actual_outcome") @db.JsonB
+  revenueImpact    Decimal? @map("revenue_impact") @db.Decimal(12, 2)
+  successScore     Decimal? @map("success_score") @db.Decimal(3, 2)
+  evaluationStatus String   @default("pending") @map("evaluation_status")
+
+  // Shopify Integration
+  shopifyOrderId           String?   @map("shopify_order_id")
+  actualRevenue            Decimal?  @map("actual_revenue") @db.Decimal(12, 2)
+  orderStatus              String?   @map("order_status")
+  evaluationTriggeredAt    DateTime? @map("evaluation_triggered_at")
+
+  // Revenue Attribution Engine
+  attributedRevenue      Decimal?  @map("attributed_revenue") @db.Decimal(12, 2)
+  attributionConfidence  Decimal?  @map("attribution_confidence") @db.Decimal(3, 2)
+  conversionWindow       String?   @map("conversion_window")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("execution_trace")
+}
+
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  email     String
+  role      UserRole @default(staff)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Store {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+  orders   Order[]
+
+  @@index([tenantId])
+  @@map("stores")
+}
+
+model Product {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  storeId   String   @map("store_id") @db.Uuid
+  name      String
+  price     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  store  Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, storeId])
+  @@map("products")
+}
+
+model Order {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId    String      @map("tenant_id") @db.Uuid
+  storeId     String      @map("store_id") @db.Uuid
+  status      OrderStatus @default(pending)
+  totalAmount Decimal     @map("total_amount") @db.Decimal(10, 2)
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  store  Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, storeId])
+  @@map("orders")
+}
+
+model Campaign {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String         @map("tenant_id") @db.Uuid
+  name      String
+  status    CampaignStatus @default(draft)
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  aiDecisions AIDecision[]
+
+  @@index([tenantId])
+  @@map("campaigns")
+}
+
+model AIDecision {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId        String   @map("tenant_id") @db.Uuid
+  campaignId      String?  @map("campaign_id") @db.Uuid
+  decisionType    String   @map("decision_type")
+  confidenceScore Decimal? @map("confidence_score") @db.Decimal(5, 4)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@map("ai_decisions")
+}
+
+model AutomationLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("automation_logs")
+}
+
+model AIInsight {
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId         String        @map("tenant_id") @db.Uuid
+  priority         Int           @default(1)
+  title            String
+  description      String
+  impactEstimate   Decimal?      @map("impact_estimate") @db.Decimal(12, 2)
+  recommendation   String
+  automationAction Json?         @map("automation_action")
+  status           InsightStatus @default(pending)
+  createdAt        DateTime      @default(now()) @map("created_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("ai_insights")
+}

@@ -1,0 +1,12 @@
+.aider*
+node_modules/
+.next/
+dist/
+.aider*
+node_modules/
+.env*
+dist/
+node_modules/
+.env*
+dist/
+.aider*
