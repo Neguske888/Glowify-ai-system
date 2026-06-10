@@ -28,4 +28,4 @@ The **Glowify AI Executive Dashboard** is a high-performance, real-time analytic
 
 ## License
 
-Confidential — Glowify Beauty Co.
+Confidential — SEVEN-MOTION Co.
