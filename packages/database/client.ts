@@ -11,8 +11,8 @@ export async function getTenantPrisma() {
     throw new Error('Tenant context missing');
   }
 
-  // Set the tenant session variable for the current connection
-  await prisma.$executeRawUnsafe(`SET app.current_tenant_id = '${tenantId}'`);
+  // Set the tenant session variable for the current connection using a parameterized query to prevent SQL injection
+  await prisma.$executeRaw`SET app.current_tenant_id = ${tenantId}`;
 
   return prisma;
 }

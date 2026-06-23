@@ -12,9 +12,21 @@ if (!getApps().length) {
 
 // Middleware to protect routes and verify Firebase session
 export async function middleware(req: NextRequest) {
+  // Define public paths that don't require authentication
+  const isPublicPath = req.nextUrl.pathname.startsWith('/login') || 
+                       req.nextUrl.pathname.startsWith('/public') ||
+                       req.nextUrl.pathname === '/';
+
   // 1. Get session token from headers (Authorization: Bearer <token>)
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return NextResponse.next();
+  
+  if (!authHeader) {
+    if (isPublicPath) return NextResponse.next();
+    return new NextResponse(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   const token = authHeader.replace('Bearer ', '');
 
@@ -22,7 +34,7 @@ export async function middleware(req: NextRequest) {
     // 2. Verify Firebase Auth token
     const decodedToken = await getAuth().verifyIdToken(token);
     
-    // 3. Inject user context into headers if needed
+    // 3. Inject user context into headers
     const requestHeaders = new Headers(req.headers);
     requestHeaders.set('x-user-uid', decodedToken.uid);
 
@@ -33,8 +45,11 @@ export async function middleware(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error verifying Firebase token:', error);
-    // Token invalid or expired, proceed without user context
-    return NextResponse.next();
+    // Token invalid or expired, reject the request
+    return new NextResponse(JSON.stringify({ error: 'Invalid or expired token' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
 
