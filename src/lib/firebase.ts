@@ -29,41 +29,27 @@ import {
   Firestore,
 } from 'firebase/firestore'
 
+// Using provided configuration as default, allowing environment variable overrides
 const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCJqT-DKaEyuMGqp-Iyx9XFAjQdimswS90",
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "glowify-ai-system.firebaseapp.com",
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID || "glowify-ai-system",
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "glowify-ai-system.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "507485872156",
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID || "1:507485872156:web:fb8782bd039a71a14e3fd9",
 }
-
-const missingVars = Object.entries(firebaseConfig)
-  .filter(([, v]) => !v || v.includes('PLACEHOLDER') || v.includes('your_'))
-  .map(([k]) => k)
 
 let app: FirebaseApp | null = null
 let auth: Auth | null = null
 let db: Firestore | null = null
 
-const getInitError = () => {
-  if (missingVars.length > 0) {
-    return `Missing Firebase configuration: ${missingVars.join(', ')}. Please set these in your environment variables.`
-  }
-  return "Firebase failed to initialize. Check the console for details."
-}
-
 try {
-  if (missingVars.length === 0) {
-    app  = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
-    auth = getAuth(app)
-    db   = getFirestore(app)
-    setPersistence(auth, browserLocalPersistence)
-      .then(() => console.log('Glowify Firebase: persistence enabled ✓'))
-      .catch(err => console.warn('Glowify Firebase: persistence warning:', err.message))
-  } else {
-    console.error('GLOWIFY: Missing Firebase config vars:', missingVars.join(', '))
-  }
+  app  = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
+  auth = getAuth(app)
+  db   = getFirestore(app)
+  setPersistence(auth, browserLocalPersistence)
+    .then(() => console.log('Glowify Firebase: persistence enabled ✓'))
+    .catch(err => console.warn('Glowify Firebase: persistence warning:', err.message))
 } catch (err: any) {
   console.error('Glowify Firebase: init FAILED:', err.message)
 }
@@ -97,7 +83,7 @@ const parseAuthError = (err: any): string => {
 export const firebaseAuth = {
   signInWithEmail: async (email: string, password: string) => {
     try {
-      if (!auth) throw new Error(getInitError())
+      if (!auth) throw new Error("Firebase Auth not initialized. Check your configuration.")
       const result = await signInWithEmailAndPassword(auth, email, password)
       return { user: result.user, error: null }
     } catch (err: any) {
@@ -107,7 +93,7 @@ export const firebaseAuth = {
 
   signUpWithEmail: async (email: string, password: string, displayName?: string, storeName?: string) => {
     try {
-      if (!auth) throw new Error(getInitError())
+      if (!auth) throw new Error("Firebase Auth not initialized. Check your configuration.")
       const result = await createUserWithEmailAndPassword(auth, email, password)
       if (displayName) await updateProfile(result.user, { displayName })
       await firestoreHelpers.createUserProfile(result.user, { displayName, storeName })
@@ -120,7 +106,7 @@ export const firebaseAuth = {
 
   signInWithGoogle: async () => {
     try {
-      if (!auth) throw new Error(getInitError())
+      if (!auth) throw new Error("Firebase Auth not initialized. Check your configuration.")
       const provider = new GoogleAuthProvider()
       const result = await signInWithPopup(auth, provider)
       const isNew = (result as any)._tokenResponse?.isNewUser
@@ -139,7 +125,7 @@ export const firebaseAuth = {
 
   signOut: async () => {
     try {
-      if (!auth) throw new Error(getInitError())
+      if (!auth) throw new Error("Firebase Auth not initialized")
       await firebaseSignOut(auth)
       return { error: null }
     } catch (err: any) {
@@ -149,7 +135,7 @@ export const firebaseAuth = {
 
   resetPassword: async (email: string) => {
     try {
-      if (!auth) throw new Error(getInitError())
+      if (!auth) throw new Error("Firebase Auth not initialized")
       await sendPasswordResetEmail(auth, email)
       return { error: null }
     } catch (err: any) {
