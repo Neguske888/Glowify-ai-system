@@ -61,7 +61,10 @@ try {
 
 export { auth, db }
 
-const parseAuthError = (code: string): string => {
+const parseAuthError = (err: any): string => {
+  const code = err?.code;
+  const message = err?.message;
+
   const map: Record<string, string> = {
     'auth/user-not-found':         'No account found with this email.',
     'auth/wrong-password':         'Incorrect password. Please try again.',
@@ -76,36 +79,39 @@ const parseAuthError = (code: string): string => {
     'auth/operation-not-allowed':  'This sign-in method is not enabled in Firebase Console.',
     'auth/cancelled-popup-request':'Sign-in cancelled. Please try again.',
   }
-  return map[code] || `Error (${code}). Please try again.`
+  
+  if (code && map[code]) return map[code];
+  if (code) return `Error (${code}): ${message || 'Please try again.'}`;
+  return message || 'An unknown error occurred. Please check your configuration.';
 }
 
 export const firebaseAuth = {
   signInWithEmail: async (email: string, password: string) => {
     try {
-      if (!auth) throw new Error('Firebase auth not initialized')
+      if (!auth) throw new Error('Firebase Auth not initialized. Check your environment variables.')
       const result = await signInWithEmailAndPassword(auth, email, password)
       return { user: result.user, error: null }
     } catch (err: any) {
-      return { user: null, error: parseAuthError(err.code) }
+      return { user: null, error: parseAuthError(err) }
     }
   },
 
   signUpWithEmail: async (email: string, password: string, displayName?: string, storeName?: string) => {
     try {
-      if (!auth) throw new Error('Firebase auth not initialized')
+      if (!auth) throw new Error('Firebase Auth not initialized. Check your environment variables.')
       const result = await createUserWithEmailAndPassword(auth, email, password)
       if (displayName) await updateProfile(result.user, { displayName })
       await firestoreHelpers.createUserProfile(result.user, { displayName, storeName })
       await firestoreHelpers.seedMockData(result.user.uid)
       return { user: result.user, error: null }
     } catch (err: any) {
-      return { user: null, error: parseAuthError(err.code) }
+      return { user: null, error: parseAuthError(err) }
     }
   },
 
   signInWithGoogle: async () => {
     try {
-      if (!auth) throw new Error('Firebase auth not initialized')
+      if (!auth) throw new Error('Firebase Auth not initialized. Check your environment variables.')
       const provider = new GoogleAuthProvider()
       const result = await signInWithPopup(auth, provider)
       const isNew = (result as any)._tokenResponse?.isNewUser
@@ -118,12 +124,13 @@ export const firebaseAuth = {
       }
       return { user: result.user, error: null }
     } catch (err: any) {
-      return { user: null, error: parseAuthError(err.code) }
+      return { user: null, error: parseAuthError(err) }
     }
   },
 
   signOut: async () => {
     try {
+      if (!auth) throw new Error('Firebase Auth not initialized')
       await firebaseSignOut(auth)
       return { error: null }
     } catch (err: any) {
@@ -133,10 +140,11 @@ export const firebaseAuth = {
 
   resetPassword: async (email: string) => {
     try {
+      if (!auth) throw new Error('Firebase Auth not initialized')
       await sendPasswordResetEmail(auth, email)
       return { error: null }
     } catch (err: any) {
-      return { error: parseAuthError(err.code) }
+      return { error: parseAuthError(err) }
     }
   },
 
@@ -152,6 +160,7 @@ export const firebaseAuth = {
 export const firestoreHelpers = {
   profileExists: async (uid: string) => {
     try {
+      if (!db) return false
       const snap = await getDoc(doc(db, 'users', uid))
       return snap.exists()
     } catch { return false }
@@ -203,7 +212,7 @@ export const firestoreHelpers = {
     if (!db) return
     try {
       const batch = writeBatch(db)
-      // Seeding logic... (omitted for brevity in this example but should be fully typed)
+      // Seeding logic...
       await batch.commit()
     } catch (err: any) {
       console.error('Glowify: seedMockData FAILED:', err.message)
