@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, Calendar, Zap, TrendingUp, BarChart3, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Internal imports
 import { Sidebar } from './components/Sidebar';
@@ -79,6 +80,7 @@ const App: React.FC = () => {
 
   return (
     <div className="glw-app-container bg-[#07070F] min-h-screen text-[#F1F1F8] flex overflow-hidden">
+      <SpeedInsights />
       <TechBackground />
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={() => console.log('Logout')} />
 
