@@ -49,7 +49,7 @@ export const AgentFeed: React.FC<AgentFeedProps> = ({ logs, loading }) => {
                 {log.reasoning}
               </p>
               <p className="text-white/90">
-                <span className="text-neutral-500">>>></span> {log.action}
+                <span className="text-neutral-500">&gt;&gt;&gt;</span> {log.action}
               </p>
             </div>
           ))

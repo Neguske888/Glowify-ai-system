@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Zap, Send, Loader2, ShieldAlert, Cpu, Activity, BrainCircuit } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { GoogleGenerativeAI } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { AGENT_FLEET_LOGS } from '../../utils/neurozenMockData';
 import { AgentFeed } from '../AgentFeed';
 
@@ -12,8 +12,7 @@ const callGemini = async (prompt: string): Promise<string> => {
     throw new Error("No API key");
   }
   
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const genAI = new GoogleGenAI({ apiKey });
   
   const systemContext = `You are the Glowify AI Fleet Operator for a beauty eCommerce brand called GLOWIFY. 
   You manage inventory intelligence, pricing decisions, and marketing automation.
@@ -21,8 +20,11 @@ const callGemini = async (prompt: string): Promise<string> => {
   Total revenue this month: $142,840. Top channel: Direct (85% share). ROAS: 4.2x.
   Respond concisely in 2-3 sentences. Be specific and actionable like a real ops AI.`;
   
-  const result = await model.generateContent(`${systemContext}\n\nOperator query: ${prompt}`);
-  return result.response.text();
+  const result = await genAI.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: `${systemContext}\n\nOperator query: ${prompt}`,
+  });
+  return result.text ?? '';
 };
 
 interface Message {
