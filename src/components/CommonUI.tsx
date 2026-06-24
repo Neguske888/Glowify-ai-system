@@ -13,7 +13,7 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ children, className = "", metric }) => (
   <motion.div 
-    className={`glw-card bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl p-6 shadow-xl relative overflow-hidden ${className}`}
+    className={`glw-card bg-[#140F14] border border-[#231820] rounded-2xl p-6 shadow-xl relative overflow-hidden ${className}`}
   >
     {metric && (
       <svg style={{position:'absolute',top:'10px',right:'10px',opacity:0.18}} width="32" height="32" viewBox="0 0 32 32">
@@ -41,8 +41,8 @@ export const Toggle: React.FC<ToggleProps> = ({ checked, onChange, disabled = fa
     onClick={!disabled ? onChange : undefined}
     className="glw-toggle-track"
     style={{
-      background: checked ? '#6366F1' : '#1E1E3A',
-      boxShadow:  checked ? '0 0 12px rgba(99,102,241,0.4)' : 'none',
+      background: checked ? '#C9747A' : '#231820',
+      boxShadow:  checked ? '0 0 12px rgba(201,116,122,0.4)' : 'none',
       opacity:    disabled ? 0.5 : 1,
       cursor:     disabled ? 'not-allowed' : 'pointer',
     }}
@@ -63,16 +63,12 @@ interface ProgressBarProps {
 export const ProgressBar: React.FC<ProgressBarProps> = ({ value, max }) => {
   const pct = Math.min(100, Math.round((value / max) * 100));
   return (
-    <div className="glw-progress-track">
+    <div className="glw-progress-track bg-[#1A1218] h-[6px] rounded-full overflow-hidden">
       <div
-        className="glw-progress-fill"
+        className="glw-progress-fill h-full rounded-full transition-all duration-500"
         style={{
           width:      `${pct}%`,
-          background: pct > 80
-            ? 'linear-gradient(90deg, #F59E0B, #EF4444)'
-            : pct > 60
-              ? 'linear-gradient(90deg, #6366F1, #F59E0B)'
-              : 'linear-gradient(90deg, #6366F1, #8B5CF6)',
+          background: 'linear-gradient(90deg, #C9747A, #8B4A6B)',
         }}
       />
     </div>
@@ -92,35 +88,27 @@ export const Skeleton: React.FC<SkeletonProps> = ({ w = '100%', h = 16, r = 6 })
 export const TechBackground: React.FC = () => (
   <div style={{position:'fixed',inset:0,pointerEvents:'none',zIndex:0,overflow:'hidden'}}>
     <div className="glw-tech-grid" style={{position:'absolute',inset:0}}/>
-    <div className="glw-divider-glow" style={{position:'absolute',top:0,left:0,right:0}}/>
-    <div className="glw-orb" style={{
-      top:'-140px',right:'-100px',width:'580px',height:'580px',
-      background:'radial-gradient(circle,rgba(99,102,241,0.07) 0%,transparent 65%)',
+    <div style={{
+      position:'absolute', top:'-160px', right:'-120px',
+      width:'600px', height:'600px',
+      background:'radial-gradient(circle, rgba(201,116,122,0.06) 0%, transparent 65%)',
+      borderRadius:'50%',
     }}/>
-    <div className="glw-orb glw-orb-2" style={{
-      bottom:'-100px',left:'12%',width:'440px',height:'440px',
-      background:'radial-gradient(circle,rgba(139,92,246,0.055) 0%,transparent 65%)',
+    <div style={{
+      position:'absolute', bottom:'-80px', left:'10%',
+      width:'480px', height:'480px',
+      background:'radial-gradient(circle, rgba(139,74,107,0.05) 0%, transparent 65%)',
+      borderRadius:'50%',
     }}/>
-    <div className="glw-orb glw-orb-3" style={{
-      top:'38%',left:'-60px',width:'300px',height:'300px',
-      background:'radial-gradient(circle,rgba(6,182,212,0.04) 0%,transparent 65%)',
+    <div style={{
+      position:'absolute', top:'35%', left:'38%',
+      width:'360px', height:'360px',
+      background:'radial-gradient(circle, rgba(201,116,122,0.025) 0%, transparent 65%)',
+      borderRadius:'50%',
     }}/>
-    <svg style={{position:'absolute',top:0,right:0,opacity:0.045,pointerEvents:'none'}} width="320" height="220" viewBox="0 0 320 220">
-      <line x1="0"   y1="45"  x2="220" y2="45"  stroke="#6366F1" strokeWidth="1"/>
-      <line x1="220" y1="45"  x2="220" y2="130" stroke="#6366F1" strokeWidth="1"/>
-      <line x1="220" y1="130" x2="320" y2="130" stroke="#6366F1" strokeWidth="1"/>
-      <line x1="90"  y1="45"  x2="90"  y2="0"   stroke="#6366F1" strokeWidth="1"/>
-      <line x1="220" y1="88"  x2="290" y2="88"  stroke="#8B5CF6" strokeWidth="1"/>
-      <line x1="155" y1="45"  x2="155" y2="75"  stroke="#8B5CF6" strokeWidth="1"/>
-      <line x1="155" y1="75"  x2="320" y2="75"  stroke="#8B5CF6" strokeWidth="1"/>
-      <line x1="0"   y1="175" x2="80"  y2="175" stroke="#06B6D4" strokeWidth="1"/>
-      <line x1="80"  y1="175" x2="80"  y2="220" stroke="#06B6D4" strokeWidth="1"/>
-      <circle cx="90"  cy="45"  r="3.5" fill="#6366F1"/>
-      <circle cx="220" cy="45"  r="3.5" fill="#6366F1"/>
-      <circle cx="220" cy="130" r="3.5" fill="#8B5CF6"/>
-      <circle cx="220" cy="88"  r="2.5" fill="#8B5CF6"/>
-      <circle cx="155" cy="75"  r="2.5" fill="#8B5CF6"/>
-      <circle cx="80"  cy="175" r="2.5" fill="#06B6D4"/>
-    </svg>
+    <div style={{
+      position:'absolute', top:0, left:0, right:0, height:'1px',
+      background:'linear-gradient(90deg, transparent, rgba(201,116,122,0.18), transparent)',
+    }}/>
   </div>
 );

@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
 
 :root {
-  background-color: #07070F;
-  color: #F1F1F8;
+  background-color: #080608;
+  color: #F5EEF0;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -28,12 +28,12 @@ body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #1E1E3A;
+  background: #231820;
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #2A2A48;
+  background: #3A2530;
 }
 
 /* Animations */
@@ -46,12 +46,13 @@ body {
   animation: pulse-subtle 2s infinite ease-in-out;
 }
 
-/* Tech Grid Background */
+/* Soft Noise Texture Background */
 .glw-tech-grid {
   background-image: 
-    linear-gradient(to right, rgba(99, 102, 241, 0.03) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+    radial-gradient(ellipse at 20% 20%, rgba(201,116,122,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(139,74,107,0.04) 0%, transparent 50%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  background-size: cover, cover, 128px 128px;
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -59,12 +60,12 @@ body {
 
 .glw-divider-glow {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(201,116,122,0.18), transparent);
 }
 
 /* Skeleton Shimmer */
 .glw-skeleton {
-  background: linear-gradient(90deg, #0D0D1A 25%, #1E1E3A 50%, #0D0D1A 75%);
+  background: linear-gradient(90deg, #100D10 25%, #231820 50%, #100D10 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
@@ -74,23 +75,22 @@ body {
   100% { background-position: -200% 0; }
 }
 
-/* Glassmorphism */
+/* Glassmorphism & Luxury Cards */
 .glw-card {
   backdrop-filter: blur(12px);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glw-card:hover {
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: rgba(201,116,122,0.25);
   transform: translateY(-2px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 20px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 24px rgba(201,116,122,0.08);
 }
 
 .glw-mono {
   font-family: var(--font-mono);
 }
 
-/* Metric Card specific adjustments */
 .glw-app-container {
   font-family: var(--font-sans);
 }
