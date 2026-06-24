@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, Zap, TrendingUp, BarChart3, Users } from 'lucide-react';
+import { Search, Bell, Zap, TrendingUp, BarChart3, Users, Home, Bot, Megaphone, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // Internal imports
 import { Sidebar } from './components/Sidebar';
 import { TechBackground } from './components/CommonUI';
 import { OverviewView, AnalyticsView } from './components/DashboardViews';
+
+// New view imports
+import { AIAgentsView } from './components/views/AIAgentsView';
+import { MarketingView } from './components/views/MarketingView';
+import { InventoryView } from './components/views/InventoryView';
+import { CustomersView } from './components/views/CustomersView';
+import { AutomationsView } from './components/views/AutomationsView';
 
 const ProfilePanel: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => (
   <AnimatePresence>
@@ -63,40 +70,26 @@ const App: React.FC = () => {
 
   const renderView = () => {
     switch (activeTab) {
-      case 'overview': return <OverviewView loading={loading} />;
-      case 'analytics': return <AnalyticsView loading={loading} />;
-      default: return (
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-          <div style={{
-            width:'64px', height:'64px', borderRadius:'18px',
-            background:'linear-gradient(135deg, rgba(201,116,122,0.1), rgba(139,74,107,0.08))',
-            border:'1px solid rgba(201,116,122,0.15)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            marginBottom:'20px',
-            boxShadow:'0 0 32px rgba(201,116,122,0.08)',
-          }} className="flex items-center justify-center">
-            <Zap size={28} style={{color:'#C9747A'}} />
-          </div>
-          <h2 style={{fontSize:'18px', fontWeight:700, color:'#F5EEF0', marginBottom:'8px'}}>
-            Coming Soon
-          </h2>
-          <p style={{fontSize:'13px', color:'#6B5560', maxWidth:'280px', lineHeight:1.6}}>
-            This module is in development. Check back in the next release.
-          </p>
-          <div 
-            onClick={() => setActiveTab('overview')}
-            style={{
-              marginTop:'32px', padding:'10px 24px', borderRadius:'12px',
-              border:'1px solid #231820', color:'#B09AA0', fontSize:'12px', fontWeight:600,
-              cursor:'pointer', background:'#100D10',
-            }}
-          >
-            Return to Command Center
-          </div>
-        </div>
-      );
+      case 'overview':    return <OverviewView loading={loading} />;
+      case 'analytics':   return <AnalyticsView loading={loading} />;
+      case 'ai':          return <AIAgentsView />;
+      case 'marketing':   return <MarketingView />;
+      case 'products':    return <InventoryView />;
+      case 'customers':   return <CustomersView />;
+      case 'automations': return <AutomationsView />;
+      default:            return <OverviewView loading={false} />;
     }
   };
+
+  const topTabs = [
+    {id: 'overview',    icon: Home,      label: 'Command'},
+    {id: 'ai',          icon: Bot,       label: 'AI Agents'},
+    {id: 'analytics',   icon: BarChart3, label: 'Analytics'},
+    {id: 'marketing',   icon: Megaphone, label: 'Marketing'},
+    {id: 'products',    icon: Package,   label: 'Inventory'},
+    {id: 'customers',   icon: Users,     label: 'Customers'},
+    {id: 'automations', icon: Zap,       label: 'Automations'},
+  ];
 
   return (
     <div className="glw-app-container bg-[#080608] min-h-screen text-[#F5EEF0] flex overflow-hidden">
@@ -143,16 +136,12 @@ const App: React.FC = () => {
               </div>
               
               <div className="flex items-center gap-3">
-                <div className="bg-[#100D10] border border-[#231820] rounded-xl p-1.5 flex gap-1">
-                  {[
-                    {id: 'overview', icon: TrendingUp, label: 'Overview'},
-                    {id: 'analytics', icon: BarChart3, label: 'Analytics'},
-                    {id: 'customers', icon: Users, label: 'Customers'},
-                  ].map(tab => (
+                <div className="bg-[#100D10] border border-[#231820] rounded-xl p-1.5 flex gap-1 overflow-x-auto max-w-[70vw] no-scrollbar">
+                  {topTabs.map(tab => (
                     <button 
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${activeTab === tab.id ? 'bg-[#231820] text-[#F5EEF0] shadow-lg' : 'text-[#6B5560] hover:text-[#B09AA0]'}`}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0 ${activeTab === tab.id ? 'bg-[#231820] text-[#F5EEF0] shadow-lg' : 'text-[#6B5560] hover:text-[#B09AA0]'}`}
                     >
                       <tab.icon size={14} />
                       {tab.label}
