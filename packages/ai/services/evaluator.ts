@@ -1,4 +1,5 @@
 import { prisma } from '../../database/client';
+import { logger } from './observability';
 
 export interface EvaluationResult {
   actualOutcome: any;
@@ -73,16 +74,31 @@ export async function calculateAttribution(
  * Compares AI recommendations with actual results, calculates success score,
  * and determines revenue impact.
  */
-export async function evaluateExecution(traceId: string, result: EvaluationResult) {
-  return await prisma.executionTrace.update({
-    where: { id: traceId },
-    data: {
-      actualOutcome: result.actualOutcome,
-      revenueImpact: result.revenueImpact,
-      successScore: result.successScore,
-      evaluationStatus: 'COMPLETED',
-    },
-  });
+export async function evaluateExecution(tenantId: string, executionId: string, result: EvaluationResult) {
+  const span = logger.startSpan('ai.evaluation', { tenantId });
+  try {
+    const updated = await prisma.executionTrace.update({
+      where: { id: executionId },
+      data: {
+        actualOutcome: result.actualOutcome,
+        revenueImpact: result.revenueImpact,
+        successScore: result.successScore,
+        evaluationStatus: 'COMPLETED',
+      },
+    });
+
+    logger.info('ai.evaluation', `Evaluation complete — $${result.revenueImpact} attributed`, {
+      tenantId,
+      duration: span.duration,
+      metadata: { executionId, revenueImpact: result.revenueImpact },
+    });
+    logger.endSpan(span, 'completed');
+    return updated;
+  } catch (err: any) {
+    logger.error('ai.evaluation', 'Evaluation failed', err, { tenantId, metadata: { executionId } });
+    logger.endSpan(span, 'failed');
+    throw err;
+  }
 }
 
 /**

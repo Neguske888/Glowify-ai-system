@@ -1,36 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+// Firebase Admin SDK should be used for server-side verification
+import { getAuth } from 'firebase-admin/auth';
+import { getApps, initializeApp, cert } from 'firebase-admin/app';
 
-// Middleware to inject tenant context into PostgreSQL
+// Initialize Firebase Admin
+if (!getApps().length) {
+  initializeApp({
+    credential: cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)),
+  });
+}
+
+// Middleware to protect routes and verify Firebase session
 export async function middleware(req: NextRequest) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  // Define public paths that don't require authentication
+  const isPublicPath = req.nextUrl.pathname.startsWith('/login') || 
+                       req.nextUrl.pathname.startsWith('/public') ||
+                       req.nextUrl.pathname === '/';
 
-  // 1. Get session from request
+  // 1. Get session token from headers (Authorization: Bearer <token>)
   const authHeader = req.headers.get('Authorization');
-  if (!authHeader) return NextResponse.next();
+  
+  if (!authHeader) {
+    if (isPublicPath) return NextResponse.next();
+    return new NextResponse(JSON.stringify({ error: 'Authentication required' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error } = await supabase.auth.getUser(token);
 
-  if (error || !user) return NextResponse.next();
-
-  // 2. Extract tenant_id from user metadata (injected during sign up)
-  const tenantId = user.user_metadata.tenant_id;
-
-  if (tenantId) {
-    // 3. Inject into request headers for downstream database clients to pick up
+  try {
+    // 2. Verify Firebase Auth token
+    const decodedToken = await getAuth().verifyIdToken(token);
+    
+    // 3. Inject user context into headers
     const requestHeaders = new Headers(req.headers);
-    requestHeaders.set('x-tenant-id', tenantId);
+    requestHeaders.set('x-user-uid', decodedToken.uid);
 
     return NextResponse.next({
       request: {
         headers: requestHeaders,
       },
     });
+  } catch (error) {
+    console.error('Error verifying Firebase token:', error);
+    // Token invalid or expired, reject the request
+    return new NextResponse(JSON.stringify({ error: 'Invalid or expired token' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
+}
 
-  return NextResponse.next();
+/**
+ * Authenticates an incoming request using the API key in the headers.
+ */
+export async function authenticateRequest(req: NextRequest) {
+  const apiKey = req.headers.get('x-api-key');
+  if (!apiKey) return null;
+
+  try {
+    const { prisma } = await import('../../packages/database/client');
+    const apiKeyDoc = await (prisma as any).aPIKey.findUnique({
+      where: { key: apiKey },
+      include: { tenant: true },
+    });
+    return apiKeyDoc;
+  } catch (error) {
+    console.error('Error authenticating request via API key:', error);
+    return null;
+  }
+}
+
+/**
+ * Enforces Safe Mode restrictions by blocking certain paths.
+ */
+export function enforceSafeMode(safeMode: boolean, path: string) {
+  if (safeMode && (path.startsWith('/api/execute') || path.includes('/execute'))) {
+    throw new Error('SAFE_MODE_BLOCK');
+  }
 }

@@ -8,15 +8,11 @@ vi.mock('next/server', () => ({
   },
 }));
 
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(),
-}));
-
 import { authenticateRequest, enforceSafeMode } from '../middleware';
 import { verifyShopifyWebhook } from '../src/app/api/webhooks/shopify/utils';
 
 // Mock Prisma
-vi.mock('@/packages/database/client', () => ({
+vi.mock('../../../packages/database/client', () => ({
   prisma: {
     aPIKey: {
       findUnique: vi.fn(),
@@ -37,7 +33,7 @@ describe('Runtime Integrity Test Suite', () => {
 
     it('injects tenantId correctly when key is valid', async () => {
       // Setup mock
-      const { prisma } = await import('@/packages/database/client');
+      const { prisma } = await import('../../../packages/database/client');
       vi.mocked(prisma.aPIKey.findUnique).mockResolvedValue({
         tenantId: 'tenant-123',
         tenant: { safeMode: false },

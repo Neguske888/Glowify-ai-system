@@ -35,11 +35,12 @@ enum InsightStatus {
 }
 
 model Tenant {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String
-  slug      String   @unique
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @map("updated_at")
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firebaseUid  String?  @unique @map("firebase_uid")
+  name         String
+  slug         String   @unique
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @map("updated_at")
 
   users           User[]
   stores          Store[]
@@ -52,8 +53,25 @@ model Tenant {
   eventLogs       EventLog[]
   aiTraces        AITrace[]
   executionTraces ExecutionTrace[]
+  revenueSnapshots RevenueSnapshot[]
 
   @@map("tenants")
+}
+
+model RevenueSnapshot {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  date      DateTime
+  revenue   Decimal  @db.Decimal(12, 2)
+  orders    Int
+  roas      Decimal  @db.Decimal(12, 2)
+  convRate  Decimal  @db.Decimal(12, 4) @map("conv_rate")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, date])
+  @@map("revenue_snapshots")
 }
 
 model EventLog {
