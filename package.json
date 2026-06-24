@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@google/genai": "^2.6.0",
+    "@vercel/speed-insights": "^2.0.0",
     "bullmq": "^5.76.10",
     "dotenv": "^17.4.2",
     "firebase": "^12.13.0",
