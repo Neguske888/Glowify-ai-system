@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ─── HELPER FUNCTIONS ─────────────────────────────────────────────────────
+    
+    // Check if the user is authenticated
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Check if the document belongs to the authenticated user
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ─── USER PROFILES & DATA ─────────────────────────────────────────────────
+    
+    // Match the user's root document and all subcollections
+    match /users/{userId} {
+      
+      // Allow the user to read and write their own profile
+      // This includes subcollections like 'orders', 'products', 'customers', etc.
+      allow read, write: if isOwner(userId);
+      
+      // Recursively apply the same owner-only rule to all subcollections
+      match /{allSubcollections=**} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Optional: Validation for profile updates
+      // allow update: if isOwner(userId) 
+      //               && request.resource.data.uid == userId
+      //               && request.resource.data.email == resource.data.email;
+    }
+
+    // ─── GLOBAL COLLECTIONS (If any) ──────────────────────────────────────────
+    
+    // If you add global settings or public data, add them here
+    // match /public_data/{docId} {
+    //   allow read: if true;
+    //   allow write: if false;
+    // }
+  }
+}
