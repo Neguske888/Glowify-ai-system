@@ -1,6 +1,6 @@
 // src/components/Sidebar.tsx
 import React from 'react';
-import { Home, Bot, BarChart2, Megaphone, Package, Users, Zap, Settings, LogOut, LucideIcon, TrendingUp } from 'lucide-react';
+import { Home, Bot, BarChart2, Megaphone, Package, Users, Zap, Settings, LucideIcon, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface SidebarItemProps {
@@ -39,10 +39,9 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, active, on
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  onLogout: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const menuItems = [
     { id: 'overview', icon: Home, label: 'Command Center' },
     { id: 'ai', icon: Bot, label: 'AI Agents' },
@@ -56,15 +55,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
   return (
     <aside className="w-[280px] h-screen bg-[#080608] border-r border-[#231820] flex flex-col shrink-0 relative z-20">
       <div className="px-7 pt-8 pb-6 border-b border-[#231820]">
-        <div className="flex items-center gap-3 group cursor-pointer">
-          <div style={{
-            width:'38px', height:'38px', borderRadius:'10px',
-            background:'linear-gradient(135deg, #C9747A 0%, #8B4A6B 100%)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            boxShadow:'0 0 20px rgba(201,116,122,0.3)',
-          }} className="group-hover:scale-110 transition-transform duration-300">
+        <div
+          onClick={() => setActiveTab('overview')}
+          className="flex items-center gap-3 group cursor-pointer"
+          title="Go to Command Center"
+        >
+          <motion.div 
+            whileHover={{ scale: 1.03 }}
+            style={{
+              width:'38px', height:'38px', borderRadius:'10px',
+              background:'linear-gradient(135deg, #C9747A 0%, #8B4A6B 100%)',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              boxShadow:'0 0 20px rgba(201,116,122,0.3)',
+            }} className="group-hover:scale-110 transition-transform duration-300">
             <Zap size={20} className="text-white fill-white" />
-          </div>
+          </motion.div>
           <div>
             <span style={{
               fontSize:'17px', fontWeight:900, letterSpacing:'-0.04em',
@@ -76,7 +81,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
               fontSize:'8px', fontWeight:700, color:'#6B5560',
               letterSpacing:'0.25em', textTransform:'uppercase', display:'block', marginTop:'3px',
             }}>
-              BEAUTY OS v2.4
+              BEAUTY OS
             </span>
           </div>
         </div>
@@ -113,7 +118,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, onLog
         
         <div className="space-y-1">
           <SidebarItem icon={Settings} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
-          <SidebarItem icon={LogOut} label="Logout" onClick={onLogout} />
         </div>
       </div>
     </aside>
