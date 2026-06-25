@@ -15,13 +15,13 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, active, on
     whileHover={{ x: 4 }}
     whileTap={{ scale: 0.98 }}
     onClick={onClick}
-    className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-200 group relative ${
+    className={`flex items-center gap-3.5 px-4 py-3.5 rounded-2xl cursor-pointer transition-all duration-200 group relative ${
       active 
         ? 'bg-gradient-to-r from-[#C9747A]/12 to-transparent text-white' 
         : 'text-[#6B5560] hover:text-[#D4A0A3] hover:bg-white/5'
     }`}
   >
-    <Icon size={20} className={active ? 'text-[#C9747A]' : 'group-hover:text-[#B09AA0]'} />
+    <Icon size={19} className={active ? 'text-[#C9747A]' : 'group-hover:text-[#B09AA0]'} />
     <span className={`text-[13px] font-bold tracking-tight ${active ? 'text-white' : ''}`}>{label}</span>
     
     {active && (
@@ -29,7 +29,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon: Icon, label, active, on
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-[#C9747A] rounded-r-full shadow-[0_0_12px_rgba(201,116,122,0.5)]" />
         <motion.div 
           layoutId="sidebar-active"
-          className="absolute inset-0 bg-gradient-to-r from-[#C9747A]/10 to-transparent rounded-xl -z-10"
+          className="absolute inset-0 bg-gradient-to-r from-[#C9747A]/10 to-transparent rounded-2xl -z-10"
         />
       </>
     )}
@@ -53,8 +53,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   ];
 
   return (
-    <aside className="w-[280px] h-screen bg-[#080608] border-r border-[#231820] flex flex-col shrink-0 relative z-20">
-      <div className="px-7 pt-8 pb-6 border-b border-[#231820]">
+    <aside className="w-[280px] h-screen bg-[#080608] border-r border-[#1E1E3A] flex flex-col shrink-0 relative z-20">
+      <div className="px-7 pt-8 pb-6 border-b border-[#1E1E3A]">
         <div
           onClick={() => setActiveTab('overview')}
           className="flex items-center gap-3 group cursor-pointer"
@@ -87,7 +87,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto custom-scrollbar pt-4">
+      <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto no-scrollbar pt-4">
         <p style={{
           fontSize:'9px', fontWeight:800, color:'#3D2B32',
           textTransform:'uppercase', letterSpacing:'0.25em',
@@ -106,7 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
       </nav>
 
       <div className="p-6 mt-auto">
-        <div className="bg-[#100D10] border border-[#231820] rounded-2xl p-4 mb-6">
+        <div className="bg-[#0D0D1A] border border-[#1E1E3A] rounded-2xl p-4 mb-6">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-8 h-8 rounded-lg bg-[#C9747A]/10 flex items-center justify-center">
               <TrendingUp size={16} className="text-[#C9747A]" />
