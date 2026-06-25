@@ -1,7 +1,7 @@
 // src/components/views/SettingsView.tsx
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Key, Store, Mail, Cpu, Eye, EyeOff, CheckCircle, AlertCircle, Save, User, Lock, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Key, Store, Mail, Cpu, Eye, EyeOff, CheckCircle, AlertCircle, Save, User, Lock, Zap, Loader2, LogOut, Trash2 } from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db, firestoreHelpers } from '../../lib/firebase';
 import { updateProfile, linkWithCredential, EmailAuthProvider, updatePassword } from 'firebase/auth';
@@ -16,18 +16,19 @@ interface ApiKeyFieldProps {
   icon: React.ReactNode;
   accentColor: string;
   docsUrl?: string;
+  error?: string;
 }
 
 const ApiKeyField: React.FC<ApiKeyFieldProps> = ({
-  label, description, placeholder, value, onChange, icon, accentColor, docsUrl,
+  label, description, placeholder, value, onChange, icon, accentColor, docsUrl, error
 }) => {
   const [show, setShow] = useState(false);
 
   return (
-    <div className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl p-5 hover:border-[#2A2A48] transition-all">
+    <div className={`bg-[#0F0F1E] border ${error ? 'border-[#EF4444]/50' : 'border-[#1E1E3A]'} rounded-2xl p-5 hover:border-[#2A2A48] transition-all group`}>
       <div className="flex items-start gap-3 mb-4">
         <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110"
           style={{ background: `${accentColor}15`, border: `1px solid ${accentColor}25` }}
         >
           <span style={{ color: accentColor }}>{icon}</span>
@@ -35,10 +36,14 @@ const ApiKeyField: React.FC<ApiKeyFieldProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-sm font-bold text-[#F1F1F8]">{label}</p>
-            {value && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20">
-                Connected
-              </span>
+            {value && !error && (
+              <motion.span 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20"
+              >
+                Configured
+              </motion.span>
             )}
           </div>
           <p className="text-xs text-[#6B6B88] mt-0.5 leading-relaxed">{description}</p>
@@ -47,9 +52,9 @@ const ApiKeyField: React.FC<ApiKeyFieldProps> = ({
               href={docsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-[#6366F1] hover:underline mt-1 inline-block"
+              className="text-[10px] text-[#C9747A] hover:underline mt-1.5 inline-block font-bold uppercase tracking-wider"
             >
-              View documentation →
+              Get Key →
             </a>
           )}
         </div>
@@ -60,19 +65,24 @@ const ApiKeyField: React.FC<ApiKeyFieldProps> = ({
           placeholder={placeholder}
           value={value}
           onChange={e => onChange(e.target.value)}
-          className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3 pr-11
+          className={`w-full bg-[#07070F] border ${error ? 'border-[#EF4444]/30' : 'border-[#1E1E3A]'} rounded-xl px-4 py-3 pr-11
             text-sm text-[#F1F1F8] placeholder:text-[#3D3D55] font-mono
-            focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/20
-            transition-all"
+            focus:outline-none focus:border-[#C9747A]/50 focus:ring-1 focus:ring-[#C9747A]/10
+            transition-all`}
         />
         <button
           type="button"
           onClick={() => setShow(!show)}
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#3D3D55] hover:text-[#6B6B88] transition-colors"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#3D3D55] hover:text-[#A0A0B8] transition-colors"
         >
           {show ? <EyeOff size={15} /> : <Eye size={15} />}
         </button>
       </div>
+      {error && (
+        <p className="text-[10px] text-[#EF4444] mt-2 font-bold uppercase tracking-wider flex items-center gap-1">
+          <AlertCircle size={10} /> {error}
+        </p>
+      )}
     </div>
   );
 };
@@ -81,9 +91,9 @@ export const SettingsView: React.FC = () => {
   const { user, profile, refreshProfile, signOut } = useAuth();
 
   // Profile state
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [displayName, setDisplayName] = useState('');
   const [storeName, setStoreName] = useState('');
-  const [photoURL, setPhotoURL] = useState(user?.photoURL || '');
+  const [photoURL, setPhotoURL] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [savedProfile, setSavedProfile] = useState(false);
 
@@ -101,40 +111,46 @@ export const SettingsView: React.FC = () => {
   const [shopifyStoreDomain, setShopifyStoreDomain] = useState('');
   const [klaviyoApiKey, setKlaviyoApiKey] = useState('');
   const [geminiApiKey, setGeminiApiKey] = useState('');
+  
+  // Errors
+  const [shopifyError, setShopifyError] = useState('');
 
   // UI state
-  const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [saveMessage, setSaveMessage] = useState('');
+  const [savingKeys, setSavingKeys] = useState(false);
+  const [keyStatus, setKeyStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [keyMessage, setKeyMessage] = useState('');
   const [confirmSignOut, setConfirmSignOut] = useState(false);
 
-  // Load profile data on mount
+  // Hydrate states from profile
   useEffect(() => {
-    if (!user) return;
-    firestoreHelpers.getProfile(user.uid).then((p: any) => {
-      if (p?.storeName) setStoreName(p.storeName);
-      if (p?.displayName) setDisplayName(p.displayName);
-      setShopifyApiKey(p?.shopifyApiKey || '');
-      setShopifyStoreDomain(p?.shopifyStoreDomain || '');
-      setKlaviyoApiKey(p?.klaviyoApiKey || '');
-      setGeminiApiKey(p?.geminiApiKey || '');
-    });
-  }, [user]);
-
-  // Check if password already linked
-  useEffect(() => {
-    if (user?.providerData.some(p => p.providerId === 'password')) {
-      setPasswordAlreadySet(true);
+    if (profile) {
+      setDisplayName(profile.displayName || '');
+      setStoreName(profile.storeName || '');
+      setShopifyApiKey(profile.shopifyApiKey || '');
+      setShopifyStoreDomain(profile.shopifyStoreDomain || '');
+      setKlaviyoApiKey(profile.klaviyoApiKey || '');
+      setGeminiApiKey(profile.geminiApiKey || '');
     }
-  }, [user]);
+    if (user) {
+      setPhotoURL(user.photoURL || '');
+      if (user.providerData.some(p => p.providerId === 'password')) {
+        setPasswordAlreadySet(true);
+      }
+    }
+  }, [profile, user]);
 
-  // Task 5.1 - Save Profile
   const handleSaveProfile = async () => {
     if (!user) return;
     setSavingProfile(true);
     try {
       await updateProfile(user, { displayName });
-      await setDoc(doc(db, 'users', user.uid), { displayName, storeName, updatedAt: serverTimestamp() }, { merge: true });
+      await setDoc(doc(db, 'users', user.uid), { 
+        displayName, 
+        storeName, 
+        updatedAt: serverTimestamp() 
+      }, { merge: true });
+      
+      await refreshProfile();
       setSavedProfile(true);
       setTimeout(() => setSavedProfile(false), 3000);
     } catch (err: any) {
@@ -144,12 +160,12 @@ export const SettingsView: React.FC = () => {
     }
   };
 
-  // Task 5.2 - Set/Change Password
   const handleSetPassword = async () => {
     setPwdResult(null);
     if (newPassword.length < 8) { setPwdResult({ type: 'error', msg: 'Password must be at least 8 characters.' }); return; }
     if (newPassword !== confirmPassword) { setPwdResult({ type: 'error', msg: 'Passwords do not match.' }); return; }
     if (!user?.email) { setPwdResult({ type: 'error', msg: 'No email address found on this account.' }); return; }
+    
     setSavingPwd(true);
     try {
       const credential = EmailAuthProvider.credential(user.email, newPassword);
@@ -160,47 +176,58 @@ export const SettingsView: React.FC = () => {
       }
       await setDoc(doc(db, 'users', user.uid), { passwordSet: true, updatedAt: serverTimestamp() }, { merge: true });
       setPasswordAlreadySet(true);
-      setPwdResult({ type: 'success', msg: passwordAlreadySet ? 'Password updated successfully.' : 'Password set. You can now also sign in with email + password.' });
+      setPwdResult({ type: 'success', msg: 'Security updated successfully.' });
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
       const msg = err.code === 'auth/requires-recent-login'
         ? 'Please sign out and sign in again before changing your password.'
-        : err.code === 'auth/credential-already-in-use'
-          ? 'This email is already linked to another account.'
-          : err.message || 'Failed to set password.';
+        : err.message || 'Failed to update security.';
       setPwdResult({ type: 'error', msg });
     } finally {
       setSavingPwd(false);
     }
   };
 
-  // Save API Keys
   const handleSaveApiKeys = async () => {
     if (!user || !db) return;
-    setSaving(true);
-    setSaveStatus('idle');
+    setShopifyError('');
+    
+    // Basic Shopify Key Validation
+    if (shopifyApiKey && !shopifyApiKey.startsWith('shpat_')) {
+      setShopifyError('Invalid Shopify Admin API Key format (should start with shpat_)');
+      return;
+    }
+
+    setSavingKeys(true);
+    setKeyStatus('idle');
     try {
+      // Clean domain input (remove https:// and trailing slashes)
+      const cleanDomain = shopifyStoreDomain.trim()
+        .replace(/^https?:\/\//, '')
+        .replace(/\/$/, '');
+
       await setDoc(
         doc(db, 'users', user.uid),
         {
           shopifyApiKey:      shopifyApiKey.trim(),
-          shopifyStoreDomain: shopifyStoreDomain.trim(),
+          shopifyStoreDomain: cleanDomain,
           klaviyoApiKey:      klaviyoApiKey.trim(),
           geminiApiKey:       geminiApiKey.trim(),
           updatedAt:          serverTimestamp(),
         },
         { merge: true }
       );
+      
       await refreshProfile();
-      setSaveStatus('success');
-      setSaveMessage('API keys saved successfully.');
+      setKeyStatus('success');
+      setKeyMessage('Integrations synchronized.');
     } catch (err: any) {
-      setSaveStatus('error');
-      setSaveMessage('Failed to save. Please try again.');
+      setKeyStatus('error');
+      setKeyMessage('Failed to save. Check your connection.');
     } finally {
-      setSaving(false);
-      setTimeout(() => setSaveStatus('idle'), 4000);
+      setSavingKeys(false);
+      setTimeout(() => setKeyStatus('idle'), 4000);
     }
   };
 
@@ -212,177 +239,118 @@ export const SettingsView: React.FC = () => {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="space-y-8 pb-8"
+      transition={{ duration: 0.3 }}
+      className="space-y-8 pb-12"
     >
-      {/* Task 5.1 - Profile Section */}
-      <div className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-4 px-6 py-5 border-b border-[#1E1E3A]">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#6366F1]/10 border border-[#6366F1]/20">
-            <User size={20} className="text-[#6366F1]" />
+      {/* Profile Section */}
+      <section className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-[24px] overflow-hidden shadow-sm">
+        <div className="flex items-center gap-4 px-6 py-5 border-b border-[#1E1E3A] bg-white/[0.02]">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#C9747A]/10 border border-[#C9747A]/20">
+            <User size={20} className="text-[#C9747A]" />
           </div>
           <div>
-            <h3 className="text-[15px] font-bold text-[#F1F1F8]">Profile</h3>
-            <p className="text-xs text-[#6B6B88] mt-0.5">Your name, store, and avatar</p>
+            <h3 className="text-[15px] font-bold text-[#F5EEF0]">Identity</h3>
+            <p className="text-[11px] text-[#6B5560] font-medium">Personal and store information</p>
           </div>
         </div>
-        <div className="p-6 space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center font-black text-white text-xl shadow-xl">
+        <div className="p-6 space-y-6">
+          <div className="flex items-center gap-5">
+            <div className="w-20 h-20 rounded-[24px] overflow-hidden bg-gradient-to-br from-[#C9747A] to-[#8B4A6B] flex items-center justify-center font-black text-white text-2xl shadow-2xl border-2 border-white/5">
               {photoURL
                 ? <img src={photoURL} alt="avatar" className="w-full h-full object-cover" />
                 : <span>{initials}</span>
               }
             </div>
             <div>
-              <p className="text-[13px] font-bold text-[#F1F1F8]">{user?.email}</p>
-              <p className="text-[11px] text-[#6B6B88] mt-0.5">Google account — avatar from Google profile</p>
+              <p className="text-sm font-bold text-[#F5EEF0]">{user?.email}</p>
+              <p className="text-[11px] text-[#6B5560] mt-1 font-medium flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                Authenticated via Google
+              </p>
             </div>
           </div>
-          <div>
-            <label className="text-[11px] font-bold text-[#6B6B88] uppercase tracking-wider block mb-1.5">Display Name</label>
-            <input
-              value={displayName}
-              onChange={e => setDisplayName(e.target.value)}
-              placeholder="Your full name"
-              className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3 text-sm text-[#F1F1F8] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#6366F1] transition-all"
-            />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[#3D3D55] uppercase tracking-[0.15em] ml-1">Display Name</label>
+              <input
+                value={displayName}
+                onChange={e => setDisplayName(e.target.value)}
+                placeholder="Full Name"
+                className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3.5 text-sm text-[#F5EEF0] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#C9747A]/50 transition-all"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[#3D3D55] uppercase tracking-[0.15em] ml-1">Store Name</label>
+              <input
+                value={storeName}
+                onChange={e => setStoreName(e.target.value)}
+                placeholder="Store Name"
+                className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3.5 text-sm text-[#F5EEF0] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#C9747A]/50 transition-all"
+              />
+            </div>
           </div>
-          <div>
-            <label className="text-[11px] font-bold text-[#6B6B88] uppercase tracking-wider block mb-1.5">Store Name</label>
-            <input
-              value={storeName}
-              onChange={e => setStoreName(e.target.value)}
-              placeholder="e.g. Glow Beauty Co."
-              className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3 text-sm text-[#F1F1F8] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#6366F1] transition-all"
-            />
-          </div>
+
           <button
             onClick={handleSaveProfile}
             disabled={savingProfile}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all"
+            className="group relative flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white transition-all overflow-hidden"
             style={{
-              background: savedProfile ? 'rgba(16,185,129,0.1)' : 'linear-gradient(135deg,#6366F1,#8B5CF6)',
+              background: savedProfile ? 'rgba(16,185,129,0.1)' : 'linear-gradient(135deg, #C9747A, #8B4A6B)',
               color: savedProfile ? '#10B981' : 'white',
               border: savedProfile ? '1px solid rgba(16,185,129,0.3)' : 'none',
-              boxShadow: savedProfile ? 'none' : '0 4px 14px rgba(99,102,241,0.35)',
+              boxShadow: savedProfile ? 'none' : '0 4px 15px rgba(201,116,122,0.3)',
             }}
           >
-            {savingProfile ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : savedProfile ? '✓ Saved' : 'Save Profile'}
+            <AnimatePresence mode="wait">
+              {savingProfile ? (
+                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <Loader2 size={18} className="animate-spin" />
+                </motion.div>
+              ) : savedProfile ? (
+                <motion.div key="saved" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} className="flex items-center gap-2">
+                  <CheckCircle size={18} /> Changes Saved
+                </motion.div>
+              ) : (
+                <motion.div key="default" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-2">
+                  Update Identity
+                </motion.div>
+              )}
+            </AnimatePresence>
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* Task 5.2 - Password Section */}
-      <div className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl overflow-hidden">
-        <div className="flex items-center gap-4 px-6 py-5 border-b border-[#1E1E3A]">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#6366F1]/10 border border-[#6366F1]/20">
-            <Lock size={20} className="text-[#6366F1]" />
+      {/* API Integrations */}
+      <section className="space-y-5">
+        <div className="flex items-center gap-3 ml-1">
+          <div className="w-8 h-8 rounded-lg bg-[#C9747A]/10 flex items-center justify-center">
+            <Key size={16} className="text-[#C9747A]" />
           </div>
-          <div>
-            <h3 className="text-[15px] font-bold text-[#F1F1F8]">Password</h3>
-            <p className="text-xs text-[#6B6B88] mt-0.5">Set or change your sign-in password</p>
-          </div>
+          <h2 className="text-sm font-black text-[#F5EEF0] uppercase tracking-[0.2em]">Data Synchronicity</h2>
         </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="text-[11px] font-bold text-[#6B6B88] uppercase tracking-wider block mb-1.5">New Password</label>
-            <div className="relative">
-              <input
-                type={showNewPwd ? 'text' : 'password'}
-                value={newPassword}
-                onChange={e => setNewPassword(e.target.value)}
-                placeholder="At least 8 characters"
-                className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3 pr-10 text-sm text-[#F1F1F8] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#6366F1] transition-all"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewPwd(!showNewPwd)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#3D3D55] hover:text-[#6B6B88]"
-              >
-                {showNewPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-          <div>
-            <label className="text-[11px] font-bold text-[#6B6B88] uppercase tracking-wider block mb-1.5">Confirm Password</label>
-            <div className="relative">
-              <input
-                type={showConfPwd ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={e => setConfirmPassword(e.target.value)}
-                placeholder="Re-enter password"
-                className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3 pr-10 text-sm text-[#F1F1F8] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#6366F1] transition-all"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfPwd(!showConfPwd)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#3D3D55] hover:text-[#6B6B88]"
-              >
-                {showConfPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
-          </div>
-          {pwdResult && (
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                pwdResult.type === 'success'
-                  ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20'
-                  : 'bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20'
-              }`}
-            >
-              {pwdResult.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
-              {pwdResult.msg}
-            </motion.div>
-          )}
-          <button
-            onClick={handleSetPassword}
-            disabled={savingPwd}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all"
-            style={{
-              background: savingPwd ? '#2A2A48' : 'linear-gradient(135deg,#6366F1,#8B5CF6)',
-              boxShadow: savingPwd ? 'none' : '0 4px 14px rgba(99,102,241,0.35)',
-              cursor: savingPwd ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {savingPwd ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Set Password'}
-          </button>
-        </div>
-      </div>
 
-      {/* Task 5.3 - API Keys Section */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Key size={16} className="text-[#6366F1]" />
-          <h2 className="text-sm font-bold text-[#F1F1F8] uppercase tracking-widest">API Integrations</h2>
-        </div>
-        <p className="text-xs text-[#6B6B88] mb-5 leading-relaxed">
-          Your API keys are stored securely in Firestore and are only accessible to your account.
-          They are never logged or shared.
-        </p>
-
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <ApiKeyField
             label="Shopify Admin API Key"
-            description="Required for syncing orders, products, and customer data from your Shopify store."
+            description="Sync products, orders, and customer segments."
             placeholder="shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             value={shopifyApiKey}
             onChange={setShopifyApiKey}
-            icon={<Store size={16} />}
+            icon={<Store size={18} />}
             accentColor="#10B981"
             docsUrl="https://help.shopify.com/en/manual/apps/app-types/custom-apps"
+            error={shopifyError}
           />
 
-          <div className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl p-5 hover:border-[#2A2A48] transition-all">
+          <div className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl p-5 hover:border-[#2A2A48] transition-all group">
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-[#10B981]/10 border border-[#10B981]/20">
-                <Store size={16} className="text-[#10B981]" />
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-[#10B981]/10 border border-[#10B981]/20 group-hover:scale-110 transition-transform">
+                <Store size={18} className="text-[#10B981]" />
               </div>
-              <div>
-                <p className="text-sm font-bold text-[#F1F1F8]">Shopify Store Domain</p>
-                <p className="text-xs text-[#6B6B88] mt-0.5">Your myshopify.com subdomain (without https://).</p>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-[#F5EEF0]">Shopify Domain</p>
+                <p className="text-[11px] text-[#6B5560] mt-0.5 font-medium">Your .myshopify.com subdomain</p>
               </div>
             </div>
             <input
@@ -390,138 +358,171 @@ export const SettingsView: React.FC = () => {
               placeholder="your-store.myshopify.com"
               value={shopifyStoreDomain}
               onChange={e => setShopifyStoreDomain(e.target.value)}
-              className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3
-                text-sm text-[#F1F1F8] placeholder:text-[#3D3D55]
-                focus:outline-none focus:border-[#6366F1] focus:ring-1 focus:ring-[#6366F1]/20
-                transition-all"
+              className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3.5 text-sm text-[#F5EEF0] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#C9747A]/50 transition-all"
             />
           </div>
 
           <ApiKeyField
-            label="Klaviyo Private API Key"
-            description="Enables email flow automation, list management, and campaign analytics via Klaviyo."
+            label="Klaviyo Private Key"
+            description="Automate flows and marketing campaigns."
             placeholder="pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             value={klaviyoApiKey}
             onChange={setKlaviyoApiKey}
-            icon={<Mail size={16} />}
+            icon={<Mail size={18} />}
             accentColor="#3B82F6"
-            docsUrl="https://help.klaviyo.com/hc/en-us/articles/115005062267"
           />
 
           <ApiKeyField
-            label="Google Gemini API Key"
-            description="Powers the AI Agents, product descriptions, and marketing copy generation features."
+            label="Gemini AI Engine"
+            description="Powers product analysis and agent intelligence."
             placeholder="AIzaSy..."
             value={geminiApiKey}
             onChange={setGeminiApiKey}
-            icon={<Cpu size={16} />}
-            accentColor="#6366F1"
-            docsUrl="https://aistudio.google.com/app/apikey"
+            icon={<Cpu size={18} />}
+            accentColor="#C9747A"
           />
         </div>
 
-        <div className="flex items-center gap-4 mt-6">
+        <div className="flex items-center gap-4 pt-2">
           <button
             onClick={handleSaveApiKeys}
-            disabled={saving}
-            className="flex items-center gap-2.5 px-6 py-3 rounded-xl font-bold text-sm text-white transition-all"
-            style={{
-              background: saving ? '#2A2A48' : 'linear-gradient(135deg, #6366F1, #8B5CF6)',
-              boxShadow: saving ? 'none' : '0 4px 20px rgba(99,102,241,0.35)',
-              cursor: saving ? 'not-allowed' : 'pointer',
-            }}
+            disabled={savingKeys}
+            className="flex items-center gap-2.5 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-white transition-all shadow-xl hover:shadow-[#C9747A]/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ background: 'linear-gradient(135deg, #C9747A, #8B4A6B)' }}
           >
-            {saving ? (
-              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-              <Save size={15} />
-            )}
-            {saving ? 'Saving...' : 'Save API Keys'}
+            {savingKeys ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {savingKeys ? 'Synchronizing...' : 'Save Integrations'}
           </button>
 
-          {saveStatus !== 'idle' && (
-            <motion.div
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              className={`flex items-center gap-2 text-sm font-medium ${
-                saveStatus === 'success' ? 'text-[#10B981]' : 'text-[#EF4444]'
-              }`}
-            >
-              {saveStatus === 'success'
-                ? <CheckCircle size={16} />
-                : <AlertCircle size={16} />
-              }
-              {saveMessage}
-            </motion.div>
-          )}
-        </div>
-      </div>
-
-      {/* Integration status overview */}
-      <div className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Zap size={16} className="text-[#6366F1]" />
-          <h2 className="text-sm font-bold text-[#F1F1F8] uppercase tracking-widest">Integration Status</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[
-            { label: 'Shopify', connected: !!(shopifyApiKey && shopifyStoreDomain), color: '#10B981' },
-            { label: 'Klaviyo', connected: !!klaviyoApiKey, color: '#3B82F6' },
-            { label: 'Gemini AI', connected: !!geminiApiKey, color: '#6366F1' },
-          ].map(({ label, connected, color }) => (
-            <div
-              key={label}
-              className="flex items-center gap-3 p-3 rounded-xl border"
-              style={{
-                background: connected ? `${color}08` : '#07070F',
-                borderColor: connected ? `${color}25` : '#1E1E3A',
-              }}
-            >
-              <div
-                className="w-2 h-2 rounded-full"
-                style={{ background: connected ? color : '#3D3D55' }}
-              />
-              <span className="text-sm font-medium text-[#F1F1F8]">{label}</span>
-              <span
-                className="ml-auto text-[10px] font-bold uppercase tracking-wider"
-                style={{ color: connected ? color : '#3D3D55' }}
+          <AnimatePresence>
+            {keyStatus !== 'idle' && (
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className={`flex items-center gap-2 text-xs font-black uppercase tracking-widest ${
+                  keyStatus === 'success' ? 'text-[#10B981]' : 'text-[#EF4444]'
+                }`}
               >
-                {connected ? 'Connected' : 'Not set'}
-              </span>
-            </div>
-          ))}
+                {keyStatus === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                {keyMessage}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </div>
+      </section>
 
-      {/* Task 5.4 - Sign Out Section */}
-      <div className="bg-[#EF4444]/4 border border-[#EF4444]/15 rounded-2xl p-6">
-        <h3 className="text-[15px] font-bold text-[#EF4444] mb-1">Sign Out</h3>
-        <p className="text-[12px] text-[#6B6B88] mb-4">You will be returned to the login screen.</p>
+      {/* Security & Access */}
+      <section className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-[24px] overflow-hidden">
+        <div className="flex items-center gap-4 px-6 py-5 border-b border-[#1E1E3A] bg-white/[0.02]">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#C9747A]/10 border border-[#C9747A]/20">
+            <Lock size={20} className="text-[#C9747A]" />
+          </div>
+          <div>
+            <h3 className="text-[15px] font-bold text-[#F5EEF0]">Security</h3>
+            <p className="text-[11px] text-[#6B5560] font-medium">Manage your access credentials</p>
+          </div>
+        </div>
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[#3D3D55] uppercase tracking-[0.15em] ml-1">New Password</label>
+              <div className="relative">
+                <input
+                  type={showNewPwd ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Min. 8 characters"
+                  className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3.5 text-sm text-[#F5EEF0] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#C9747A]/50 transition-all"
+                />
+                <button onClick={() => setShowNewPwd(!showNewPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#3D3D55] hover:text-[#A0A0B8]">
+                  {showNewPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-[#3D3D55] uppercase tracking-[0.15em] ml-1">Verify Password</label>
+              <div className="relative">
+                <input
+                  type={showConfPwd ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="Repeat Password"
+                  className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3.5 text-sm text-[#F5EEF0] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#C9747A]/50 transition-all"
+                />
+                <button onClick={() => setShowConfPwd(!showConfPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#3D3D55] hover:text-[#A0A0B8]">
+                  {showConfPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {pwdResult && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className={`p-4 rounded-xl text-xs font-bold uppercase tracking-widest flex items-center gap-3 ${
+                  pwdResult.type === 'success' ? 'bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/20' : 'bg-[#EF4444]/10 text-[#EF4444] border border-[#EF4444]/20'
+                }`}
+              >
+                {pwdResult.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                {pwdResult.msg}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <button
+            onClick={handleSetPassword}
+            disabled={savingPwd}
+            className="px-8 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest text-white transition-all bg-[#1E1E3A] hover:bg-[#2A2A48] active:scale-95 disabled:opacity-50"
+          >
+            {savingPwd ? 'Processing...' : 'Update Security'}
+          </button>
+        </div>
+      </section>
+
+      {/* Danger Zone */}
+      <section className="bg-[#EF4444]/5 border border-[#EF4444]/10 rounded-[24px] p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#EF4444]/10 flex items-center justify-center shrink-0">
+            <LogOut size={24} className="text-[#EF4444]" />
+          </div>
+          <div className="text-center sm:text-left">
+            <h3 className="text-[15px] font-bold text-[#F5EEF0]">Sign Out</h3>
+            <p className="text-[11px] text-[#6B5560] font-medium">Securely end your current session</p>
+          </div>
+        </div>
+        
         {!confirmSignOut ? (
           <button
             onClick={() => setConfirmSignOut(true)}
-            className="px-5 py-2.5 rounded-xl text-sm font-bold text-[#EF4444] border border-[#EF4444]/30 hover:bg-[#EF4444]/10 transition-all"
+            className="px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-[#EF4444] border border-[#EF4444]/20 hover:bg-[#EF4444]/10 transition-all active:scale-95"
           >
-            Sign Out
+            Terminate Session
           </button>
         ) : (
-          <div className="flex items-center gap-3">
-            <span className="text-[12px] text-[#F1F1F8]">Are you sure?</span>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex items-center gap-2"
+          >
             <button
               onClick={async () => { await signOut(); }}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#EF4444] hover:bg-[#DC2626] transition-all"
+              className="px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-white bg-[#EF4444] hover:bg-[#DC2626] transition-all"
             >
-              Yes, sign out
+              Confirm Logout
             </button>
             <button
               onClick={() => setConfirmSignOut(false)}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-[#6B6B88] border border-[#1E1E3A] hover:bg-white/5 transition-all"
+              className="px-5 py-3 rounded-xl text-xs font-black uppercase tracking-widest text-[#6B5560] border border-[#1E1E3A] hover:bg-white/5 transition-all"
             >
               Cancel
             </button>
-          </div>
+          </motion.div>
         )}
-      </div>
+      </section>
     </motion.div>
   );
 };

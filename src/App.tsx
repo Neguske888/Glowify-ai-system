@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, Zap, BarChart3, Users, Home, Bot, Megaphone, Package, Settings as SettingsIcon, Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { auth, firestoreHelpers } from './lib/firebase';
-import { onAuthStateChanged, User } from 'firebase/auth';
-
-// Internal imports
-import { Sidebar } from './components/Sidebar';
 import { TechBackground } from './components/CommonUI';
 import { OverviewView, AnalyticsView } from './components/DashboardViews';
 
@@ -25,14 +20,15 @@ import { AuthScreen } from './components/AuthScreen';
 interface ProfilePanelProps {
   isOpen: boolean;
   onClose: () => void;
-  displayName: string;
-  storeName: string;
-  initials: string;
-  photoURL: string | null;
 }
 
-const ProfilePanel: React.FC<ProfilePanelProps> = ({ isOpen, onClose, displayName, storeName, initials, photoURL }) => {
+const ProfilePanel: React.FC<ProfilePanelProps> = ({ isOpen, onClose }) => {
   const { user, profile, signOut } = useAuth();
+
+  const displayName = profile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'User';
+  const storeName = profile?.storeName || 'My Store';
+  const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
+  const photoURL = user?.photoURL || null;
 
   return (
     <AnimatePresence>
@@ -51,7 +47,7 @@ const ProfilePanel: React.FC<ProfilePanelProps> = ({ isOpen, onClose, displayNam
             className="fixed top-0 right-0 h-full w-full max-w-[400px] bg-[#080608] border-l border-[#1E1E3A] p-6 z-[101] shadow-2xl flex flex-col"
           >
             <div className="flex justify-end mb-4">
-              <button onClick={onClose} className="p-2 rounded-xl bg-[#1E1E3A] text-[#A0A0B8]">
+              <button onClick={onClose} className="p-2 rounded-xl bg-[#1E1E3A] text-[#A0A0B8] hover:text-white transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -80,12 +76,10 @@ const ProfilePanel: React.FC<ProfilePanelProps> = ({ isOpen, onClose, displayNam
                   <p className="text-[10px] font-bold text-[#6B5560] uppercase tracking-widest">Status</p>
                   <p className="text-sm font-bold text-[#10B981] mt-1">{profile?.planStatus || 'Active'}</p>
                 </div>
-                {storeName && (
-                  <div className="col-span-2 bg-[#0D0D1A] p-4 rounded-2xl border border-[#1E1E3A]">
-                    <p className="text-[10px] font-bold text-[#6B5560] uppercase tracking-widest">Store</p>
-                    <p className="text-sm font-bold text-[#F5EEF0] mt-1">{storeName}</p>
-                  </div>
-                )}
+                <div className="col-span-2 bg-[#0D0D1A] p-4 rounded-2xl border border-[#1E1E3A]">
+                  <p className="text-[10px] font-bold text-[#6B5560] uppercase tracking-widest">Store</p>
+                  <p className="text-sm font-bold text-[#F5EEF0] mt-1">{storeName}</p>
+                </div>
               </div>
             </div>
 
@@ -113,25 +107,11 @@ const ProfilePanel: React.FC<ProfilePanelProps> = ({ isOpen, onClose, displayNam
 // ─── App Shell (inner, requires AuthContext) ─────────────────────────────────
 const AppShell: React.FC = () => {
   const { user, profile, loading } = useAuth();
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<{displayName?: string; storeName?: string; photoURL?: string} | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [pageLoading, setPageLoading] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Wire Firebase auth state
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        const profile = await firestoreHelpers.getProfile(user.uid);
-        setUserProfile(profile as any);
-      }
-    });
-    return unsub;
-  }, []);
 
   // Page loading shimmer on tab change
   useEffect(() => {
@@ -140,11 +120,11 @@ const AppShell: React.FC = () => {
     return () => clearTimeout(timer);
   }, [activeTab]);
 
-  // Compute display values
-  const displayName = userProfile?.displayName || currentUser?.displayName || currentUser?.email?.split('@')[0] || 'User';
-  const storeName = (userProfile as any)?.storeName || 'My Store';
+  // Compute display values from central profile
+  const displayName = profile?.displayName || user?.displayName || user?.email?.split('@')[0] || 'User';
+  const storeName = profile?.storeName || 'My Store';
   const initials = displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
-  const photoURL = currentUser?.photoURL || null;
+  const photoURL = user?.photoURL || null;
 
   // ── Firebase loading spinner ────────────────────────────────────────────
   if (loading) {
@@ -234,7 +214,7 @@ const AppShell: React.FC = () => {
               <Search size={16} className="text-[#3D3D55]" />
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search command..."
                 className="bg-transparent border-none outline-none text-sm text-[#F5EEF0] w-full placeholder:text-[#3D3D55]"
               />
             </div>
@@ -272,7 +252,7 @@ const AppShell: React.FC = () => {
                     >
                       <div className="flex items-center justify-between px-5 py-4 border-b border-[#1E1E3A]">
                         <span className="text-sm font-bold text-[#F1F1F8]">Notifications</span>
-                        <span className="text-[10px] font-bold text-[#C9747A] uppercase tracking-widest cursor-pointer">Clear all</span>
+                        <span className="text-[10px] font-bold text-[#C9747A] uppercase tracking-widest cursor-pointer hover:text-[#F5EEF0] transition-colors">Clear all</span>
                       </div>
                       <div className="divide-y divide-[#1E1E3A] max-h-[400px] overflow-y-auto custom-scrollbar">
                         {[
@@ -281,7 +261,7 @@ const AppShell: React.FC = () => {
                           { icon: '📦', title: 'New Order', desc: '#8824 — Vitamin C Serum', time: '22m' },
                           { icon: '⚡', title: 'Recovered', desc: 'Abandoned cart — $340 saved', time: '1h' },
                         ].map((n, i) => (
-                          <div key={i} className="flex items-start gap-3 px-5 py-4 hover:bg-white/5 active:bg-white/10 transition-colors">
+                          <div key={i} className="flex items-start gap-3 px-5 py-4 hover:bg-white/5 active:bg-white/10 transition-colors cursor-pointer">
                             <span className="text-lg shrink-0">{n.icon}</span>
                             <div className="flex-1 min-w-0">
                               <p className="text-[13px] font-bold text-[#F1F1F8]">{n.title}</p>
@@ -308,7 +288,7 @@ const AppShell: React.FC = () => {
                 </p>
               </div>
               <div
-                className="w-10 h-10 lg:w-11 lg:h-11 rounded-xl overflow-hidden flex items-center justify-center font-black text-white text-xs lg:text-sm shadow-xl border border-white/10"
+                className="w-10 h-10 lg:w-11 lg:h-11 rounded-xl overflow-hidden flex items-center justify-center font-black text-white text-xs lg:text-sm shadow-xl border border-white/10 group-hover:border-[#C9747A]/30 transition-all"
                 style={{ background: 'linear-gradient(135deg, #C9747A, #8B4A6B)' }}
               >
                 {photoURL
@@ -332,7 +312,7 @@ const AppShell: React.FC = () => {
                   <span className="px-2 py-0.5 rounded-md bg-[#C9747A]/10 text-[#C9747A] text-[9px] font-black uppercase tracking-widest border border-[#C9747A]/20">
                     Live
                   </span>
-                  <span className="text-[10px] font-bold text-[#6B5560]">Synced 2m ago</span>
+                  <span className="text-[10px] font-bold text-[#6B5560]">Synced just now</span>
                 </div>
                 <h1 className="text-3xl lg:text-4xl font-black text-[#F5EEF0] tracking-tight">
                   {activeTab === 'settings'
@@ -360,10 +340,6 @@ const AppShell: React.FC = () => {
       <ProfilePanel 
         isOpen={showProfile} 
         onClose={() => setShowProfile(false)}
-        displayName={displayName}
-        storeName={storeName}
-        initials={initials}
-        photoURL={photoURL}
       />
     </div>
   );
