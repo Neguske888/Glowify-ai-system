@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Users, UserPlus, Heart, MapPin, Star, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { MetricCard } from '../MetricCard';
+import { Search, Filter, Download, MoreHorizontal, UserPlus, Mail, Tag, Plus } from 'lucide-react';
 
 const SEGMENTS = [
   { name: 'VIP / High LTV', count: 284, pct: 8, ltv: 680, color: '#C9747A' },
@@ -35,8 +36,36 @@ const TOP_CUSTOMERS = [
 ];
 
 export const CustomersView: React.FC = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+
   return (
     <div className="space-y-10">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-[#F5EEF0] tracking-tight">Customer Intelligence</h2>
+          <p className="text-xs text-[#6B5560] font-bold mt-1 uppercase tracking-widest">3,556 Total Profiles Analyzed</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#3D3D55]" />
+            <input 
+              type="text"
+              placeholder="Search customers..."
+              className="bg-[#080608] border border-[#231820] rounded-xl pl-10 pr-4 py-2 text-xs text-white focus:outline-none focus:border-[#C9747A] transition-all w-64"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <button className="p-2 bg-[#080608] border border-[#231820] rounded-xl text-[#6B5560] hover:text-white transition-all">
+            <Filter size={18} />
+          </button>
+          <button className="px-4 py-2 bg-[#C9747A] text-white text-xs font-black rounded-xl hover:bg-[#D4A0A3] transition-all flex items-center gap-2">
+            <Plus size={16} /> Create Segment
+          </button>
+        </div>
+      </div>
+
       {/* KPI Strip */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard label="Total Customers" value="3,556" change="+12.4%" trend="up" />
@@ -160,18 +189,26 @@ export const CustomersView: React.FC = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-[#231820]">
-                  <th className="px-6 py-4 text-[10px] font-black text-[#6B5560] uppercase tracking-widest">Name</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-[#6B5560] uppercase tracking-widest">Customer</th>
                   <th className="px-6 py-4 text-[10px] font-black text-[#6B5560] uppercase tracking-widest text-center">Orders</th>
                   <th className="px-6 py-4 text-[10px] font-black text-[#6B5560] uppercase tracking-widest">LTV</th>
                   <th className="px-6 py-4 text-[10px] font-black text-[#6B5560] uppercase tracking-widest">Segment</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-[#6B5560] uppercase tracking-widest text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {TOP_CUSTOMERS.map((cust) => (
-                  <tr key={cust.email} className="border-b border-[#231820]/50 hover:bg-[#1A1218] transition-colors">
+                  <tr key={cust.email} className="border-b border-[#231820]/50 hover:bg-[#1A1218] transition-colors group">
                     <td className="px-6 py-4">
-                      <p className="text-xs font-bold text-[#F5EEF0]">{cust.name}</p>
-                      <p className="text-[10px] text-[#6B5560]">{cust.email}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#C9747A] to-[#8B4A6B] flex items-center justify-center text-[10px] font-black text-white">
+                          {cust.name[0]}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-[#F5EEF0]">{cust.name}</p>
+                          <p className="text-[10px] text-[#6B5560]">{cust.email}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-xs font-bold text-[#B09AA0] text-center">{cust.orders}</td>
                     <td className="px-6 py-4 text-xs font-bold text-[#F5EEF0]">${cust.ltv.toLocaleString()}</td>
@@ -183,6 +220,13 @@ export const CustomersView: React.FC = () => {
                       }`}>
                         {cust.segment}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <div className="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="p-1.5 rounded-lg bg-white/5 text-[#6B5560] hover:text-white transition-all" title="Send Email"><Mail size={14} /></button>
+                        <button className="p-1.5 rounded-lg bg-white/5 text-[#6B5560] hover:text-white transition-all" title="Add Tag"><Tag size={14} /></button>
+                        <button className="p-1.5 rounded-lg bg-white/5 text-[#6B5560] hover:text-white transition-all"><MoreHorizontal size={14} /></button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -114,6 +114,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
             <span className="text-[11px] font-bold text-white">Efficiency +24%</span>
           </div>
           <p className="text-[10px] text-[#6B5560] leading-relaxed">AI agents have automated 14 tasks in the last 24 hours.</p>
+          <button 
+            onClick={() => setActiveTab('automations')}
+            className="w-full mt-3 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-[9px] font-black uppercase tracking-widest text-[#C9747A] transition-all"
+          >
+            View Automation Logs
+          </button>
         </div>
         
         <div className="space-y-1">

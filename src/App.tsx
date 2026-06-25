@@ -1,6 +1,6 @@
 // src/App.tsx
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, Zap, Package, Menu, X, ChevronRight } from 'lucide-react';
+import { Search, Bell, Zap, Package, Menu, X, ChevronRight, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TechBackground } from './components/CommonUI';
 import { Sidebar } from './components/Sidebar';
@@ -8,9 +8,16 @@ import { OverviewView, AnalyticsView } from './components/DashboardViews';
 import { AIAgentsView } from './components/views/AIAgentsView';
 import { MarketingView } from './components/views/MarketingView';
 import { InventoryView } from './components/views/InventoryView';
+import { CustomersView } from './components/views/CustomersView';
+import { AutomationsView } from './components/views/AutomationsView';
+import { ActivityCenter } from './components/ActivityCenter';
 import { SettingsView } from './components/views/SettingsView';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { DashboardProvider } from './contexts/DashboardContext';
 import { AuthScreen } from './components/AuthScreen';
+import { CommandPalette } from './components/CommandPalette';
+import { NotificationCenter } from './components/NotificationCenter';
+
 
 // ─── Profile Panel ──────────────────────────────────────────────────────────
 const ProfilePanel: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
@@ -52,6 +59,7 @@ const AppShell: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
 
   if (authLoading) {
     return (
@@ -76,6 +84,9 @@ const AppShell: React.FC = () => {
       case 'analytics': return <AnalyticsView loading={authLoading} onNavigate={setActiveTab} />;
       case 'marketing': return <MarketingView onNavigate={setActiveTab} />;
       case 'products': return <InventoryView onNavigate={setActiveTab} />;
+      case 'customers': return <CustomersView />;
+      case 'automations': return <AutomationsView />;
+      case 'activity': return <ActivityCenter />;
       case 'ai': return <AIAgentsView />;
       case 'settings': return <SettingsView />;
       default: return <OverviewView loading={authLoading} onNavigate={setActiveTab} />;
@@ -88,6 +99,7 @@ const AppShell: React.FC = () => {
       <div className={`${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative z-[150] transition-transform duration-300 ease-out`}><Sidebar activeTab={activeTab} setActiveTab={(tab) => { setActiveTab(tab); setIsSidebarOpen(false); }} /></div>
       <AnimatePresence>{isSidebarOpen && <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[140] lg:hidden" />}</AnimatePresence>
       <main className="flex-1 flex flex-col min-w-0 relative">
+        <CommandPalette isOpen={false} onClose={() => {}} onNavigate={setActiveTab} />
         <header className="h-20 lg:h-24 border-b border-[#1E1E3A] flex items-center justify-between px-4 lg:px-10 bg-[#080608]/80 backdrop-blur-xl sticky top-0 z-[100]">
           <div className="flex items-center gap-4">
             <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-[#6B5560]"><Menu size={20} /></button>
@@ -97,18 +109,7 @@ const AppShell: React.FC = () => {
           </div>
           <div className="flex items-center gap-2 lg:gap-4">
             <div className="relative">
-              <button onClick={() => setIsNotificationsOpen(!isNotificationsOpen)} className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-[#6B6B88] hover:text-[#C9747A] hover:bg-[#C9747A]/10 transition-all relative group"><Bell size={20} className="group-active:scale-90 transition-transform" /><span className="absolute top-3 right-3 w-2 h-2 bg-[#C9747A] rounded-full border-2 border-[#080608]" /></button>
-              <AnimatePresence>
-                {isNotificationsOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setIsNotificationsOpen(false)} />
-                    <motion.div initial={{ opacity: 0, y: 10, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 10, scale: 0.95 }} className="absolute right-0 mt-3 w-80 bg-[#0D0D1A] border border-[#1E1E3A] rounded-[24px] shadow-2xl z-20 overflow-hidden">
-                      <div className="p-4 border-b border-[#1E1E3A] flex items-center justify-between"><h4 className="text-xs font-black uppercase tracking-widest text-white">Notifications</h4><span className="text-[10px] font-bold text-[#C9747A] bg-[#C9747A]/10 px-2 py-0.5 rounded-full">New</span></div>
-                      <div className="p-8 text-center opacity-30"><p className="text-[11px] font-black uppercase tracking-widest">No new notifications</p></div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
+              <button onClick={() => setIsNotificationCenterOpen(true)} className="w-10 h-10 lg:w-12 lg:h-12 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-center text-[#6B6B88] hover:text-[#C9747A] hover:bg-[#C9747A]/10 transition-all relative group"><Bell size={20} className="group-active:scale-90 transition-transform" /><span className="absolute top-3 right-3 w-2 h-2 bg-[#C9747A] rounded-full border-2 border-[#080608]" /></button>
             </div>
             <button onClick={() => setIsProfileOpen(true)} className="flex items-center gap-3 pl-1 pr-1 lg:pr-4 py-1 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
               <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl bg-gradient-to-br from-[#C9747A] to-[#8B4A6B] flex items-center justify-center text-sm font-black text-white shadow-lg group-hover:scale-105 transition-transform">{profile?.displayName?.[0] || 'U'}</div>
@@ -121,10 +122,17 @@ const AppShell: React.FC = () => {
         </div>
       </main>
       <ProfilePanel isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <NotificationCenter isOpen={isNotificationCenterOpen} onClose={() => setIsNotificationCenterOpen(false)} />
     </div>
   );
 };
 
 export default function App() {
-  return (<AuthProvider><AppShell /></AuthProvider>);
+  return (
+    <AuthProvider>
+      <DashboardProvider>
+        <AppShell />
+      </DashboardProvider>
+    </AuthProvider>
+  );
 }

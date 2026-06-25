@@ -8,12 +8,14 @@ interface MetricCardProps {
   change?: string;
   trend?: 'up' | 'down' | 'neutral';
   loading?: boolean;
+  onClick?: () => void;
 }
 
-export const MetricCard: React.FC<MetricCardProps> = ({ label, value, change, trend, loading }) => {
+export const MetricCard: React.FC<MetricCardProps> = ({ label, value, change, trend, loading, onClick }) => {
   return (
     <div 
-      className="relative group overflow-hidden rounded-2xl p-6 transition-all shadow-xl"
+      onClick={onClick}
+      className={`relative group overflow-hidden rounded-2xl p-6 transition-all shadow-xl ${onClick ? 'cursor-pointer active:scale-[0.98]' : ''}`}
       style={{
         background: 'linear-gradient(135deg, #0F0F1E 0%, #0D0D1A 100%)',
         border: '1px solid #1E1E3A',

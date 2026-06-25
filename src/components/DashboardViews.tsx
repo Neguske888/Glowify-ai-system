@@ -5,8 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Card, Skeleton } from './CommonUI';
 import { MetricCard } from './MetricCard';
 import { ConnectStore } from './ConnectStore';
+import { AIExecutiveSummary } from './AIExecutiveSummary';
 import { fetchDashboardData } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useDashboard } from '../contexts/DashboardContext';
 
 const ActivityItem: React.FC<{ item: any }> = ({ item }) => (
   <motion.div 
@@ -38,9 +40,9 @@ const ActivityItem: React.FC<{ item: any }> = ({ item }) => (
 
 export const OverviewView: React.FC<{ loading: boolean; onNavigate: (tab: string) => void }> = ({ loading: authLoading, onNavigate }) => {
   const { user, profile } = useAuth();
+  const { timeRange, setTimeRange } = useDashboard();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<'Daily' | 'Weekly'>('Daily');
   const [showAllActivity, setShowAllActivity] = useState(false);
   const [activityFilter, setActivityFilter] = useState('all');
 
@@ -53,12 +55,13 @@ export const OverviewView: React.FC<{ loading: boolean; onNavigate: (tab: string
         return;
       }
       setLoading(true);
+      // In a real app, we'd pass timeRange to the API
       const res = await fetchDashboardData(user.uid);
       setData(res);
       setLoading(false);
     }
     load();
-  }, [user, hasApiKey]);
+  }, [user, hasApiKey, timeRange]);
 
   if (!hasApiKey && !authLoading) {
     return <ConnectStore onConnect={() => onNavigate('settings')} />;
@@ -74,11 +77,41 @@ export const OverviewView: React.FC<{ loading: boolean; onNavigate: (tab: string
   return (
     <div className="space-y-6 lg:space-y-8">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
-        <MetricCard label="Revenue" value={data?.snapshots?.[0]?.revenue ? `$${(data.snapshots[0].revenue/1000).toFixed(1)}k` : "$0.00"} change="+0%" trend="neutral" loading={loading || authLoading} />
-        <MetricCard label="ROAS" value="0.0x" change="+0.0" trend="neutral" loading={loading || authLoading} />
-        <MetricCard label="Conv." value="0.00%" change="+0.0%" trend="neutral" loading={loading || authLoading} />
-        <MetricCard label="AI Impact" value="$0.00" change="+0%" trend="neutral" loading={loading || authLoading} />
+        <MetricCard 
+          label="Revenue" 
+          value={data?.snapshots?.[0]?.revenue ? `$${(data.snapshots[0].revenue/1000).toFixed(1)}k` : "$0.00"} 
+          change="+14%" 
+          trend="up" 
+          loading={loading || authLoading} 
+          onClick={() => onNavigate('analytics')}
+        />
+        <MetricCard 
+          label="ROAS" 
+          value="4.2x" 
+          change="+0.4" 
+          trend="up" 
+          loading={loading || authLoading} 
+          onClick={() => onNavigate('marketing')}
+        />
+        <MetricCard 
+          label="Conv." 
+          value="3.85%" 
+          change="+0.12%" 
+          trend="up" 
+          loading={loading || authLoading} 
+          onClick={() => onNavigate('analytics')}
+        />
+        <MetricCard 
+          label="AI Impact" 
+          value="$12,450" 
+          change="+8%" 
+          trend="up" 
+          loading={loading || authLoading} 
+          onClick={() => onNavigate('ai')}
+        />
       </div>
+
+      <AIExecutiveSummary />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         <div className="lg:col-span-2">
@@ -88,13 +121,13 @@ export const OverviewView: React.FC<{ loading: boolean; onNavigate: (tab: string
                 <h3 className="text-lg font-bold text-[#F1F1F8] tracking-tight">Revenue Growth</h3>
                 <p className="text-xs text-[#6B6B88]">Omnichannel performance metrics</p>
               </div>
-              <div className="flex items-center gap-1 bg-[#0D0D1A] rounded-xl p-1 border border-[#1E1E3A] self-start">
-                {(['Daily', 'Weekly'] as const).map(t => (
+              <div className="flex items-center gap-1 bg-[#0D0D1A] rounded-xl p-1 border border-[#1E1E3A] self-start overflow-x-auto no-scrollbar max-w-[300px] sm:max-w-none">
+                {(['Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days', 'Last 90 Days'] as const).map(t => (
                   <button
                     key={t}
-                    onClick={() => setPeriod(t)}
-                    className={`px-4 py-1.5 text-[10px] font-black rounded-lg transition-all ${
-                      period === t ? 'bg-[#C9747A] text-white shadow-lg' : 'text-[#6B6B88] hover:text-[#A0A0B8]'
+                    onClick={() => setTimeRange(t)}
+                    className={`px-3 py-1.5 text-[9px] font-black rounded-lg transition-all whitespace-nowrap ${
+                      timeRange === t ? 'bg-[#C9747A] text-white shadow-lg' : 'text-[#6B6B88] hover:text-[#A0A0B8]'
                     }`}
                   >
                     {t}
