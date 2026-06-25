@@ -51,11 +51,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (firebaseUser) {
         let p = await firestoreHelpers.getProfile(firebaseUser.uid);
         
-        // If profile doesn't exist, create it and seed mock data
+        // If profile doesn't exist, create a clean one (NO MOCK DATA)
         if (!p) {
-          console.log('Glowify: Creating new profile and seeding data...');
+          console.log('Glowify: Creating new clean profile...');
           await firestoreHelpers.createUserProfile(firebaseUser);
-          await firestoreHelpers.seedMockData(firebaseUser.uid);
           p = await firestoreHelpers.getProfile(firebaseUser.uid);
         }
         

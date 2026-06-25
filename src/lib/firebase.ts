@@ -20,8 +20,7 @@ import {
   query, 
   getDocs, 
   orderBy, 
-  limit,
-  writeBatch
+  limit
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -113,52 +112,5 @@ export const firestoreHelpers = {
     } catch (err: any) {
       return [];
     }
-  },
-
-  seedMockData: async (uid: string) => {
-    if (!db) return;
-    try {
-      const batch = writeBatch(db);
-      
-      const snapshotsRef = collection(db, 'users', uid, 'revenue_snapshots');
-      for (let i = 0; i < 30; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        batch.set(doc(snapshotsRef), {
-          date: d.toISOString(),
-          revenue: 3800 + (30 - i) * 80 + Math.random() * 600,
-          orders: 45 + Math.floor(Math.random() * 20),
-          createdAt: serverTimestamp()
-        });
-      }
-
-      const productsRef = collection(db, 'users', uid, 'products');
-      const products = [
-        { name: 'Vitamin C Brightening Serum', price: 89, inventory: 42, sales: 840, category: 'Serums', velocity: 18.5 },
-        { name: 'Hyaluronic Moisture Surge', price: 65, inventory: 12, sales: 1240, category: 'Moisturizers', velocity: 12.2 },
-        { name: 'Retinol Night Treatment', price: 120, inventory: 28, sales: 520, category: 'Treatments', velocity: 22.4 },
-        { name: 'Gentle AHA Cleanser', price: 45, inventory: 85, sales: 980, category: 'Cleansers', velocity: 15.8 }
-      ];
-      products.forEach(p => {
-        batch.set(doc(productsRef), { ...p, createdAt: serverTimestamp() });
-      });
-
-      const activityRef = collection(db, 'users', uid, 'activity_feed');
-      const activities = [
-        { type: 'order', text: 'New Order #8824 — Vitamin C Serum', amount: '89.00', color: '#10B981', time: '1m ago' },
-        { type: 'order', text: 'New Order #8823 — Hyaluronic Surge x2', amount: '130.00', color: '#10B981', time: '3m ago' },
-        { type: 'automation', text: 'Cart Recovered — Retinol Cream', amount: '340.00', color: '#8B4A6B', time: '8m ago' },
-        { type: 'alert', text: 'Low Stock: Hyaluronic Moisture Surge (12)', amount: null, color: '#F59E0B', time: '12m ago' },
-        { type: 'marketing', text: 'Klaviyo — Win-Back Series sent (4,200)', amount: null, color: '#C9747A', time: '18m ago' }
-      ];
-      activities.forEach(a => {
-        batch.set(doc(activityRef), { ...a, createdAt: serverTimestamp() });
-      });
-
-      await batch.commit();
-      console.log('Glowify: seedMockData SUCCESS');
-    } catch (err: any) {
-      console.error('Glowify: seedMockData FAILED:', err.message);
-    }
-  },
+  }
 };

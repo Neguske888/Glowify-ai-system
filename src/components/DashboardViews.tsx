@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Package, Mail, AlertCircle, Zap, TrendingUp, TrendingDown, ArrowRight, X } from 'lucide-react';
 import { AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, BarChart, Bar, Cell, YAxis } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DS } from '../theme';
 import { Card, Skeleton } from './CommonUI';
 import { MetricCard } from './MetricCard';
+import { ConnectStore } from './ConnectStore';
 import { fetchDashboardData } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -36,34 +36,33 @@ const ActivityItem: React.FC<{ item: any }> = ({ item }) => (
   </motion.div>
 );
 
-export const OverviewView: React.FC<{ loading: boolean }> = ({ loading: authLoading }) => {
-  const { user } = useAuth();
+export const OverviewView: React.FC<{ loading: boolean; onNavigate: (tab: string) => void }> = ({ loading: authLoading, onNavigate }) => {
+  const { user, profile } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'Daily' | 'Weekly'>('Daily');
-  const [visibleCount, setVisibleCount] = useState(0);
   const [showAllActivity, setShowAllActivity] = useState(false);
   const [activityFilter, setActivityFilter] = useState('all');
 
+  const hasApiKey = !!profile?.shopifyApiKey;
+
   useEffect(() => {
     async function load() {
-      if (!user) return;
+      if (!user || !hasApiKey) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       const res = await fetchDashboardData(user.uid);
       setData(res);
       setLoading(false);
     }
     load();
-  }, [user]);
+  }, [user, hasApiKey]);
 
-  // Auto-rotate live feed
-  useEffect(() => {
-    if (!data?.activity?.length) return;
-    const timer = setInterval(() => {
-      setVisibleCount(c => (c + 1) % data.activity.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [data]);
+  if (!hasApiKey && !authLoading) {
+    return <ConnectStore onConnect={() => onNavigate('settings')} />;
+  }
 
   const chartData = data?.snapshots?.map((s: any) => ({
     label: new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -74,12 +73,11 @@ export const OverviewView: React.FC<{ loading: boolean }> = ({ loading: authLoad
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      {/* Metric Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
-        <MetricCard label="Revenue" value="$142.8k" change="+12%" trend="up" loading={loading || authLoading} />
-        <MetricCard label="ROAS" value="4.2x" change="+0.8" trend="up" loading={loading || authLoading} />
-        <MetricCard label="Conv." value="3.84%" change="-0.2%" trend="down" loading={loading || authLoading} />
-        <MetricCard label="AI Impact" value="$31.2k" change="+18%" trend="up" loading={loading || authLoading} />
+        <MetricCard label="Revenue" value={data?.snapshots?.[0]?.revenue ? `$${(data.snapshots[0].revenue/1000).toFixed(1)}k` : "$0.00"} change="+0%" trend="neutral" loading={loading || authLoading} />
+        <MetricCard label="ROAS" value="0.0x" change="+0.0" trend="neutral" loading={loading || authLoading} />
+        <MetricCard label="Conv." value="0.00%" change="+0.0%" trend="neutral" loading={loading || authLoading} />
+        <MetricCard label="AI Impact" value="$0.00" change="+0%" trend="neutral" loading={loading || authLoading} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -115,37 +113,12 @@ export const OverviewView: React.FC<{ loading: boolean }> = ({ loading: authLoad
                         <stop offset="95%" stopColor="#C9747A" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <XAxis
-                      dataKey="label"
-                      tick={{ fill: '#3D3D55', fontSize: 10, fontWeight: 700 }}
-                      tickLine={false}
-                      axisLine={false}
-                      interval={period === 'Daily' ? 5 : 1}
-                      dy={10}
-                    />
-                    <YAxis 
-                      tick={{ fill: '#3D3D55', fontSize: 10, fontWeight: 700 }}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => `$${v >= 1000 ? (v/1000).toFixed(1)+'k' : v}`}
-                    />
+                    <XAxis dataKey="label" tick={{ fill: '#3D3D55', fontSize: 10, fontWeight: 700 }} tickLine={false} axisLine={false} interval={5} dy={10} />
+                    <YAxis tick={{ fill: '#3D3D55', fontSize: 10, fontWeight: 700 }} tickLine={false} axisLine={false} />
                     <Tooltip
-                      contentStyle={{
-                        background: '#0D0D1A', border: '1px solid #1E1E3A',
-                        borderRadius: '16px', color: '#F1F1F8', fontSize: '12px',
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.5)', padding: '12px'
-                      }}
-                      cursor={{ stroke: '#C9747A', strokeWidth: 1, strokeDasharray: '4 4' }}
+                      contentStyle={{ background: '#0D0D1A', border: '1px solid #1E1E3A', borderRadius: '16px', color: '#F1F1F8', fontSize: '12px' }}
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="revenue" 
-                      stroke="#C9747A" 
-                      strokeWidth={3} 
-                      fill="url(#grad-revenue)" 
-                      dot={false}
-                      activeDot={{ r: 6, fill: '#C9747A', stroke: '#080608', strokeWidth: 2 }}
-                    />
+                    <Area type="monotone" dataKey="revenue" stroke="#C9747A" strokeWidth={3} fill="url(#grad-revenue)" dot={false} />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -165,11 +138,16 @@ export const OverviewView: React.FC<{ loading: boolean }> = ({ loading: authLoad
               </div>
             </div>
             <div className="space-y-1 flex-1">
-              <AnimatePresence mode="popLayout">
-                {displayedActivities.map((item: any, i: number) => (
+              {displayedActivities.length > 0 ? (
+                displayedActivities.map((item: any, i: number) => (
                   <ActivityItem key={item.id || i} item={item} />
-                ))}
-              </AnimatePresence>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full opacity-40 py-10">
+                  <Zap size={32} className="mb-3" />
+                  <p className="text-[11px] font-bold uppercase tracking-widest">No activity recorded</p>
+                </div>
+              )}
             </div>
             <button
               onClick={() => setShowAllActivity(true)}
@@ -185,52 +163,28 @@ export const OverviewView: React.FC<{ loading: boolean }> = ({ loading: authLoad
       <AnimatePresence>
         {showAllActivity && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowAllActivity(false)}
-              className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200]"
-            />
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 h-[85vh] lg:h-full lg:w-full lg:max-w-[480px] lg:top-0 lg:right-0 lg:left-auto bg-[#080608] border-t lg:border-t-0 lg:border-l border-[#1E1E3A] z-[201] flex flex-col shadow-2xl rounded-t-[32px] lg:rounded-none"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowAllActivity(false)} className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200]" />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 300 }} className="fixed bottom-0 left-0 right-0 h-[85vh] lg:h-full lg:w-full lg:max-w-[480px] lg:top-0 lg:right-0 lg:left-auto bg-[#080608] border-t lg:border-t-0 lg:border-l border-[#1E1E3A] z-[201] flex flex-col shadow-2xl rounded-t-[32px] lg:rounded-none">
               <div className="w-12 h-1.5 bg-[#1E1E3A] rounded-full mx-auto mt-3 mb-1 lg:hidden" />
               <div className="flex items-center justify-between px-6 py-6 border-b border-[#1E1E3A]">
                 <div>
                   <h3 className="text-xl font-black text-[#F1F1F8] tracking-tight">Activity Log</h3>
                   <p className="text-xs text-[#6B6B88] font-bold mt-1 uppercase tracking-widest">Last 24 Hours</p>
                 </div>
-                <button 
-                  onClick={() => setShowAllActivity(false)} 
-                  className="w-10 h-10 rounded-2xl bg-[#1E1E3A] flex items-center justify-center text-[#A0A0B8] active:scale-90 transition-transform"
-                >
+                <button onClick={() => setShowAllActivity(false)} className="w-10 h-10 rounded-2xl bg-[#1E1E3A] flex items-center justify-center text-[#A0A0B8] active:scale-90 transition-transform">
                   <X size={20} />
                 </button>
               </div>
-              
-              <div className="flex gap-2 px-6 py-4 overflow-x-auto no-scrollbar border-b border-[#1E1E3A]">
-                {['all', 'order', 'marketing', 'alert', 'automation'].map(f => (
-                  <button
-                    key={f}
-                    onClick={() => setActivityFilter(f)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                      activityFilter === f ? 'bg-[#C9747A] text-white' : 'bg-[#0D0D1A] text-[#6B6B88] border border-[#1E1E3A]'
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-
               <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
-                {(data?.activity || [])
-                  .filter((item: any) => activityFilter === 'all' || item.type === activityFilter)
-                  .map((item: any, i: number) => (
+                {(data?.activity || []).length > 0 ? (
+                  (data.activity).filter((item: any) => activityFilter === 'all' || item.type === activityFilter).map((item: any, i: number) => (
                     <ActivityItem key={item.id || i} item={item} />
-                  ))}
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full opacity-40">
+                    <p className="text-[11px] font-bold uppercase tracking-widest">No activity found</p>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>
@@ -240,21 +194,30 @@ export const OverviewView: React.FC<{ loading: boolean }> = ({ loading: authLoad
   );
 };
 
-export const AnalyticsView: React.FC<{ loading: boolean }> = ({ loading: authLoading }) => {
-  const { user } = useAuth();
+export const AnalyticsView: React.FC<{ loading: boolean; onNavigate: (tab: string) => void }> = ({ loading: authLoading, onNavigate }) => {
+  const { user, profile } = useAuth();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const hasApiKey = !!profile?.shopifyApiKey;
+
   useEffect(() => {
     async function load() {
-      if (!user) return;
+      if (!user || !hasApiKey) {
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       const res = await fetchDashboardData(user.uid);
       setData(res);
       setLoading(false);
     }
     load();
-  }, [user]);
+  }, [user, hasApiKey]);
+
+  if (!hasApiKey && !authLoading) {
+    return <ConnectStore onConnect={() => onNavigate('settings')} />;
+  }
 
   const categoryData = data?.products?.map((p: any) => ({
     name: p.name.split(' ')[0],
@@ -272,25 +235,25 @@ export const AnalyticsView: React.FC<{ loading: boolean }> = ({ loading: authLoa
           </div>
           <div className="h-[250px] lg:h-[300px]">
             {loading || authLoading ? <Skeleton h="100%" w="100%" r={16} /> : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#3D3D55', fontSize: 10, fontWeight: 700}} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#3D3D55', fontSize: 10, fontWeight: 700}} />
-                  <Tooltip
-                    cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-                    contentStyle={{
-                      background: '#0D0D1A', border: '1px solid #1E1E3A',
-                      borderRadius: '16px', color: '#F1F1F8', fontSize: '12px',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)', padding: '12px'
-                    }}
-                  />
-                  <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={40}>
-                    {categoryData.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              categoryData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={categoryData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#3D3D55', fontSize: 10, fontWeight: 700}} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#3D3D55', fontSize: 10, fontWeight: 700}} />
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.03)' }} contentStyle={{ background: '#0D0D1A', border: '1px solid #1E1E3A', borderRadius: '16px', color: '#F1F1F8', fontSize: '12px' }} />
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={40}>
+                      {categoryData.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full opacity-40">
+                  <Package size={32} className="mb-3" />
+                  <p className="text-[11px] font-bold uppercase tracking-widest">No product data</p>
+                </div>
+              )
             )}
           </div>
         </Card>
@@ -302,10 +265,10 @@ export const AnalyticsView: React.FC<{ loading: boolean }> = ({ loading: authLoa
           </div>
           <div className="space-y-6">
             {[
-              { name: 'Direct Store', value: 85, color: '#C9747A', trend: '+12%' },
-              { name: 'Social Ads', value: 62, color: '#8B4A6B', trend: '+5%' },
-              { name: 'Email Flow', value: 48, color: '#D4A0A3', trend: '+22%' },
-              { name: 'Organic', value: 35, color: '#F59E0B', trend: '-2%' },
+              { name: 'Direct Store', value: 0, color: '#C9747A', trend: '+0%' },
+              { name: 'Social Ads', value: 0, color: '#8B4A6B', trend: '+0%' },
+              { name: 'Email Flow', value: 0, color: '#D4A0A3', trend: '+0%' },
+              { name: 'Organic', value: 0, color: '#F59E0B', trend: '+0%' },
             ].map(channel => (
               <div key={channel.name} className="space-y-3">
                 <div className="flex justify-between items-end">
@@ -316,12 +279,7 @@ export const AnalyticsView: React.FC<{ loading: boolean }> = ({ loading: authLoa
                   <p className="text-xs font-black text-[#F1F1F8] tabular-nums">{channel.value}%</p>
                 </div>
                 <div className="h-2 bg-[#0D0D1A] rounded-full overflow-hidden border border-[#1E1E3A]">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${channel.value}%` }}
-                    className="h-full rounded-full"
-                    style={{ background: channel.color }}
-                  />
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${channel.value}%` }} className="h-full rounded-full" style={{ background: channel.color }} />
                 </div>
               </div>
             ))}
