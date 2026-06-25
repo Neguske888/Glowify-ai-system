@@ -21,7 +21,7 @@ importers:
         specifier: ^17.4.2
         version: 17.4.2
       firebase:
-        specifier: ^12.13.0
+        specifier: ^12.15.0
         version: 12.15.0
       firebase-admin:
         specifier: ^13.10.0
