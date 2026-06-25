@@ -4,15 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { GoogleGenAI } from '@google/genai';
 import { AGENT_FLEET_LOGS } from '../../utils/neurozenMockData';
 import { AgentFeed } from '../AgentFeed';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Gemini Integration
-const callGemini = async (prompt: string): Promise<string> => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const callGemini = async (prompt: string, apiKey: string): Promise<string> => {
   if (!apiKey) {
     throw new Error("No API key");
   }
   
-  const genAI = new GoogleGenAI({ apiKey });
+  const genAI = new GoogleGenAI(apiKey);
   
   const systemContext = `You are the Glowify AI Fleet Operator for a beauty eCommerce brand called GLOWIFY. 
   You manage inventory intelligence, pricing decisions, and marketing automation.
@@ -20,11 +20,11 @@ const callGemini = async (prompt: string): Promise<string> => {
   Total revenue this month: $142,840. Top channel: Direct (85% share). ROAS: 4.2x.
   Respond concisely in 2-3 sentences. Be specific and actionable like a real ops AI.`;
   
-  const result = await genAI.models.generateContent({
-    model: 'gemini-2.0-flash',
-    contents: `${systemContext}\n\nOperator query: ${prompt}`,
-  });
-  return result.text ?? '';
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  
+  const result = await model.generateContent(`${systemContext}\n\nOperator query: ${prompt}`);
+  const response = await result.response;
+  return response.text() ?? '';
 };
 
 interface Message {
@@ -33,6 +33,7 @@ interface Message {
 }
 
 export const AIAgentsView: React.FC = () => {
+  const { profile } = useAuth();
   const [prompt, setPrompt] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     { role: 'ai', text: 'System initialized. All 4 neural agents are online and monitoring the GLOWIFY ecosystem. How can I assist with operations today?' }
@@ -53,20 +54,25 @@ export const AIAgentsView: React.FC = () => {
     if (!text.trim() || isTyping) return;
     
     const userMsg = text.trim();
+    const geminiKey = profile?.geminiApiKey || import.meta.env.VITE_GEMINI_API_KEY;
+
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setPrompt('');
     setIsTyping(true);
     setError(null);
 
     try {
-      const response = await callGemini(userMsg);
+      if (!geminiKey) {
+        throw new Error("No API key");
+      }
+      const response = await callGemini(userMsg, geminiKey);
       setMessages(prev => [...prev, { role: 'ai', text: response }]);
     } catch (err: any) {
       console.error(err);
       if (err.message === "No API key") {
         setError("API Key Missing");
       } else {
-        setError("Network Error");
+        setError("AI Service Unavailable");
       }
       // Simulated response on error
       setTimeout(() => {
@@ -151,7 +157,7 @@ export const AIAgentsView: React.FC = () => {
             {error === "API Key Missing" && (
               <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
                 <p className="text-[11px] text-amber-400 leading-relaxed">
-                  ⚠️ **Connect your Gemini API key** in environment settings to enable live AI analysis. Showing simulated responses below.
+                  ⚠️ **Connect your Gemini API key** in settings to enable live AI analysis. Showing simulated responses below.
                 </p>
               </div>
             )}
@@ -210,7 +216,7 @@ export const AIAgentsView: React.FC = () => {
                 {isTyping ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
               </button>
             </div>
-            <p className="text-center text-[9px] text-[#3D2B32] uppercase tracking-widest font-bold">Powered by Gemini 2.0 Flash</p>
+            <p className="text-center text-[9px] text-[#3D2B32] uppercase tracking-widest font-bold">Powered by Gemini 1.5 Flash</p>
           </div>
         </div>
       </div>
