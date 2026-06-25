@@ -1,184 +1,80 @@
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app'
-import {
-  getAuth,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
+// src/lib/firebase.ts
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { 
+  getAuth, 
+  onAuthStateChanged, 
+  User, 
+  GoogleAuthProvider, 
   signInWithPopup,
-  GoogleAuthProvider,
   signOut as firebaseSignOut,
-  sendPasswordResetEmail,
-  onAuthStateChanged,
-  updateProfile,
   setPersistence,
-  browserLocalPersistence,
-  Auth,
-  User,
-} from 'firebase/auth'
-import {
-  getFirestore,
-  doc,
-  setDoc,
-  getDoc,
-  collection,
-  getDocs,
-  query,
-  orderBy,
+  browserLocalPersistence
+} from 'firebase/auth';
+import { 
+  getFirestore, 
+  doc, 
+  getDoc, 
+  setDoc, 
+  serverTimestamp, 
+  collection, 
+  query, 
+  getDocs, 
+  orderBy, 
   limit,
-  serverTimestamp,
-  writeBatch,
-  Firestore,
-} from 'firebase/firestore'
+  writeBatch
+} from 'firebase/firestore';
 
-// Use environment variables exclusively
 const firebaseConfig = {
-  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
-}
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCJqT-DKaEyuMGqp-Iyx9XFAjQdimswS90",
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "glowify-ai-system.firebaseapp.com",
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID || "glowify-ai-system",
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "glowify-ai-system.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "507485872156",
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID || "1:507485872156:web:fb8782bd039a71a14e3fd9",
+  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-648EKGCVB4"
+};
 
-// Check for missing variables
-const missingVars = Object.entries(firebaseConfig)
-  .filter(([, v]) => !v || v.includes('PLACEHOLDER') || v.includes('your_'))
-  .map(([k]) => k)
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
-let app: FirebaseApp | null = null
-let auth: Auth | null = null
-let db: Firestore | null = null
+setPersistence(auth, browserLocalPersistence).catch(err => {
+  console.error("Firebase persistence failed:", err.message);
+});
 
-const getInitError = () => {
-  if (missingVars.length > 0) {
-    return `Missing Firebase configuration: ${missingVars.join(', ')}. Please ensure these are set in your Vercel Environment Variables.`
-  }
-  return "Firebase failed to initialize. Check the console for details."
-}
-
-try {
-  if (missingVars.length === 0) {
-    app  = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
-    auth = getAuth(app)
-    db   = getFirestore(app)
-    setPersistence(auth, browserLocalPersistence)
-      .then(() => console.log('Glowify Firebase: persistence enabled ✓'))
-      .catch(err => console.warn('Glowify Firebase: persistence warning:', err.message))
-  } else {
-    console.error('GLOWIFY: Missing Firebase config vars:', missingVars.join(', '))
-  }
-} catch (err: any) {
-  console.error('Glowify Firebase: init FAILED:', err.message)
-}
-
-export { auth, db }
-
-const parseAuthError = (err: any): string => {
-  const code = err?.code;
-  const message = err?.message;
-
-  const map: Record<string, string> = {
-    'auth/user-not-found':         'No account found with this email.',
-    'auth/wrong-password':         'Incorrect password. Please try again.',
-    'auth/invalid-credential':     'Invalid email or password.',
-    'auth/invalid-email':          'Please enter a valid email address.',
-    'auth/email-already-in-use':   'An account with this email already exists.',
-    'auth/weak-password':          'Password must be at least 6 characters.',
-    'auth/popup-closed-by-user':   'Sign-in popup closed. Please try again.',
-    'auth/popup-blocked':          'Popup blocked. Allow popups for this site.',
-    'auth/network-request-failed': 'Network error. Check your connection.',
-    'auth/too-many-requests':      'Too many attempts. Please wait and try again.',
-    'auth/operation-not-allowed':  'This sign-in method is not enabled in Firebase Console.',
-    'auth/cancelled-popup-request':'Sign-in cancelled. Please try again.',
-  }
-  
-  if (code && map[code]) return map[code];
-  if (code) return `Error (${code}): ${message || 'Please try again.'}`;
-  return message || 'An unknown error occurred. Please check your configuration.';
-}
+export const googleProvider = new GoogleAuthProvider();
 
 export const firebaseAuth = {
-  signInWithEmail: async (email: string, password: string) => {
-    try {
-      if (!auth) throw new Error(getInitError())
-      const result = await signInWithEmailAndPassword(auth, email, password)
-      return { user: result.user, error: null }
-    } catch (err: any) {
-      return { user: null, error: parseAuthError(err) }
-    }
-  },
-
-  signUpWithEmail: async (email: string, password: string, displayName?: string, storeName?: string) => {
-    try {
-      if (!auth) throw new Error(getInitError())
-      const result = await createUserWithEmailAndPassword(auth, email, password)
-      if (displayName) await updateProfile(result.user, { displayName })
-      await firestoreHelpers.createUserProfile(result.user, { displayName, storeName })
-      await firestoreHelpers.seedMockData(result.user.uid)
-      return { user: result.user, error: null }
-    } catch (err: any) {
-      return { user: null, error: parseAuthError(err) }
-    }
-  },
-
   signInWithGoogle: async () => {
-    try {
-      if (!auth) throw new Error(getInitError())
-      const provider = new GoogleAuthProvider()
-      const result = await signInWithPopup(auth, provider)
-      const isNew = (result as any)._tokenResponse?.isNewUser
-      if (isNew) {
-        await firestoreHelpers.createUserProfile(result.user, {
-          displayName: result.user.displayName || undefined,
-          storeName: 'Glowify Beauty Co.',
-        })
-        await firestoreHelpers.seedMockData(result.user.uid)
-      }
-      return { user: result.user, error: null }
-    } catch (err: any) {
-      return { user: null, error: parseAuthError(err) }
-    }
+    if (!auth) throw new Error("Firebase Auth not initialized");
+    return signInWithPopup(auth, googleProvider);
   },
-
+  
   signOut: async () => {
-    try {
-      if (!auth) throw new Error(getInitError())
-      await firebaseSignOut(auth)
-      return { error: null }
-    } catch (err: any) {
-      return { error: err.message }
-    }
-  },
-
-  resetPassword: async (email: string) => {
-    try {
-      if (!auth) throw new Error(getInitError())
-      await sendPasswordResetEmail(auth, email)
-      return { error: null }
-    } catch (err: any) {
-      return { error: parseAuthError(err) }
-    }
+    if (!auth) throw new Error("Firebase Auth not initialized");
+    return firebaseSignOut(auth);
   },
 
   onAuthStateChanged: (callback: (user: User | null) => void) => {
     if (!auth) {
-      setTimeout(() => callback(null), 0)
-      return () => {}
+      setTimeout(() => callback(null), 0);
+      return () => {};
     }
-    return onAuthStateChanged(auth, callback)
+    return onAuthStateChanged(auth, callback);
   },
-}
+};
 
 export const firestoreHelpers = {
   profileExists: async (uid: string) => {
     try {
-      if (!db) return false
-      const snap = await getDoc(doc(db, 'users', uid))
-      return snap.exists()
-    } catch { return false }
+      if (!db) return false;
+      const snap = await getDoc(doc(db, 'users', uid));
+      return snap.exists();
+    } catch { return false; }
   },
 
   createUserProfile: async (user: User, extra: { displayName?: string; storeName?: string } = {}) => {
-    if (!db) return
+    if (!db) return;
     try {
       await setDoc(doc(db, 'users', user.uid), {
         uid:               user.uid,
@@ -188,45 +84,81 @@ export const firestoreHelpers = {
         plan:              'Enterprise',
         planStatus:        'Active',
         updatedAt:         serverTimestamp(),
-      }, { merge: true })
+      }, { merge: true });
     } catch (err: any) {
-      console.error('Glowify: createUserProfile failed:', err.message)
+      console.error('Glowify: createUserProfile failed:', err.message);
     }
   },
 
   getProfile: async (uid: string) => {
-    if (!db) return null
+    if (!db) return null;
     try {
-      const snap = await getDoc(doc(db, 'users', uid))
-      return snap.exists() ? { id: snap.id, ...snap.data() } : null
+      const snap = await getDoc(doc(db, 'users', uid));
+      return snap.exists() ? { id: snap.id, ...snap.data() } : null;
     } catch (err: any) {
-      return null
+      return null;
     }
   },
 
   getData: async (uid: string, collectionName: string, limitNum: number = 100) => {
-    if (!db) return []
+    if (!db) return [];
     try {
       const q = query(
         collection(db, 'users', uid, collectionName),
         orderBy('createdAt', 'desc'),
         limit(limitNum)
-      )
-      const snap = await getDocs(q)
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      );
+      const snap = await getDocs(q);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (err: any) {
-      return []
+      return [];
     }
   },
 
   seedMockData: async (uid: string) => {
-    if (!db) return
+    if (!db) return;
     try {
-      const batch = writeBatch(db)
-      // Seeding logic...
-      await batch.commit()
+      const batch = writeBatch(db);
+      
+      const snapshotsRef = collection(db, 'users', uid, 'revenue_snapshots');
+      for (let i = 0; i < 30; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        batch.set(doc(snapshotsRef), {
+          date: d.toISOString(),
+          revenue: 3800 + (30 - i) * 80 + Math.random() * 600,
+          orders: 45 + Math.floor(Math.random() * 20),
+          createdAt: serverTimestamp()
+        });
+      }
+
+      const productsRef = collection(db, 'users', uid, 'products');
+      const products = [
+        { name: 'Vitamin C Brightening Serum', price: 89, inventory: 42, sales: 840, category: 'Serums', velocity: 18.5 },
+        { name: 'Hyaluronic Moisture Surge', price: 65, inventory: 12, sales: 1240, category: 'Moisturizers', velocity: 12.2 },
+        { name: 'Retinol Night Treatment', price: 120, inventory: 28, sales: 520, category: 'Treatments', velocity: 22.4 },
+        { name: 'Gentle AHA Cleanser', price: 45, inventory: 85, sales: 980, category: 'Cleansers', velocity: 15.8 }
+      ];
+      products.forEach(p => {
+        batch.set(doc(productsRef), { ...p, createdAt: serverTimestamp() });
+      });
+
+      const activityRef = collection(db, 'users', uid, 'activity_feed');
+      const activities = [
+        { type: 'order', text: 'New Order #8824 — Vitamin C Serum', amount: '89.00', color: '#10B981', time: '1m ago' },
+        { type: 'order', text: 'New Order #8823 — Hyaluronic Surge x2', amount: '130.00', color: '#10B981', time: '3m ago' },
+        { type: 'automation', text: 'Cart Recovered — Retinol Cream', amount: '340.00', color: '#8B4A6B', time: '8m ago' },
+        { type: 'alert', text: 'Low Stock: Hyaluronic Moisture Surge (12)', amount: null, color: '#F59E0B', time: '12m ago' },
+        { type: 'marketing', text: 'Klaviyo — Win-Back Series sent (4,200)', amount: null, color: '#C9747A', time: '18m ago' }
+      ];
+      activities.forEach(a => {
+        batch.set(doc(activityRef), { ...a, createdAt: serverTimestamp() });
+      });
+
+      await batch.commit();
+      console.log('Glowify: seedMockData SUCCESS');
     } catch (err: any) {
-      console.error('Glowify: seedMockData FAILED:', err.message)
+      console.error('Glowify: seedMockData FAILED:', err.message);
     }
   },
-}
+};

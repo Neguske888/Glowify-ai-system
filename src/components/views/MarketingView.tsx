@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Megaphone, TrendingUp, Mail, Globe, ArrowUpRight, ArrowDownRight, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { MetricCard } from '../MetricCard';
+import { useAuth } from '../../contexts/AuthContext';
+import { fetchDashboardData } from '../../lib/api';
 
 const CHANNEL_SPEND = [
   { channel: 'Meta Ads', spend: 8200, revenue: 34440, roas: 4.2, trend: 'up', change: '+0.4x' },
@@ -27,14 +29,29 @@ const EMAIL_CAMPAIGNS = [
 ];
 
 export const MarketingView: React.FC = () => {
+  const { user } = useAuth();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      if (!user) return;
+      setLoading(true);
+      const res = await fetchDashboardData(user.uid);
+      setData(res);
+      setLoading(false);
+    }
+    load();
+  }, [user]);
+
   return (
     <div className="space-y-10">
       {/* KPI Strip */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard label="Total Ad Spend" value="$13,600" change="-4.2%" trend="up" />
-        <MetricCard label="Blended ROAS" value="4.2x" change="+0.8x" trend="up" />
-        <MetricCard label="Email Revenue" value="$9,800" change="+24%" trend="up" />
-        <MetricCard label="Organic Revenue" value="$22,400" change="+18%" trend="up" />
+        <MetricCard label="Total Ad Spend" value="$13,600" change="-4.2%" trend="up" loading={loading} />
+        <MetricCard label="Blended ROAS" value="4.2x" change="+0.8x" trend="up" loading={loading} />
+        <MetricCard label="Email Revenue" value="$9,800" change="+24%" trend="up" loading={loading} />
+        <MetricCard label="Organic Revenue" value="$22,400" change="+18%" trend="up" loading={loading} />
       </div>
 
       {/* Channel Performance Table */}

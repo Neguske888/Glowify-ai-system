@@ -5,46 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { DS } from '../theme';
 import { Card, Skeleton } from './CommonUI';
 import { MetricCard } from './MetricCard';
-
-// Task 4.1 - Revenue Data
-const today = new Date();
-
-const DAILY_DATA = Array.from({ length: 30 }, (_, i) => {
-  const d = new Date(today);
-  d.setDate(today.getDate() - (29 - i));
-  return {
-    label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    revenue: Math.round(3800 + i * 80 + Math.random() * 600),
-  };
-});
-
-const WEEKLY_DATA = Array.from({ length: 12 }, (_, i) => {
-  const d = new Date(today);
-  d.setDate(today.getDate() - (11 - i) * 7);
-  return {
-    label: `W${i + 1}`,
-    revenue: Math.round(24000 + i * 800 + Math.random() * 3000),
-  };
-});
-
-const CATEGORY_DATA = [
-  { name: 'Serums', value: 45000, color: '#C9747A' },
-  { name: 'Moisturizers', value: 32000, color: '#8B4A6B' },
-  { name: 'Cleansers', value: 28000, color: '#D4A0A3' },
-  { name: 'Treatments', value: 15000, color: '#F59E0B' },
-];
-
-// Task 4.2 - Live Feed Data
-const ALL_ACTIVITIES = [
-  { type: 'order',      color: '#10B981', text: 'New Order #8824 — Vitamin C Serum',         amount: '89.00',  time: '1m ago'  },
-  { type: 'order',      color: '#10B981', text: 'New Order #8823 — Hyaluronic Surge x2',     amount: '130.00', time: '3m ago'  },
-  { type: 'automation', color: '#8B4A6B', text: 'Cart Recovered — Retinol Cream',             amount: '340.00', time: '8m ago'  },
-  { type: 'alert',      color: '#F59E0B', text: 'Low Stock: Hyaluronic Moisture Surge (12)',  amount: null,     time: '12m ago' },
-  { type: 'marketing',  color: '#C9747A', text: 'Klaviyo — Win-Back Series sent (4,200)',     amount: null,     time: '18m ago' },
-  { type: 'order',      color: '#10B981', text: 'New Order #8822 — AHA Cleanser',             amount: '52.00',  time: '22m ago' },
-  { type: 'alert',      color: '#EF4444', text: 'Out of Stock: Peptide Eye Serum',            amount: null,     time: '31m ago' },
-  { type: 'automation', color: '#8B4A6B', text: 'Pricing Engine — Retinol adjusted to $118', amount: null,     time: '45m ago' },
-];
+import { fetchDashboardData } from '../lib/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const ActivityItem: React.FC<{ item: any }> = ({ item }) => (
   <motion.div 
@@ -54,17 +16,17 @@ const ActivityItem: React.FC<{ item: any }> = ({ item }) => (
   >
     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-active:scale-90"
       style={{
-        background: `${item.color}15`,
-        border: `1px solid ${item.color}25`,
+        background: `${item.color || '#C9747A'}15`,
+        border: `1px solid ${item.color || '#C9747A'}25`,
       }}>
-      {item.type === 'order' && <Package size={18} style={{ color: item.color }} />}
-      {item.type === 'marketing' && <Mail size={18} style={{ color: item.color }} />}
-      {item.type === 'alert' && <AlertCircle size={18} style={{ color: item.color }} />}
-      {item.type === 'automation' && <Zap size={18} style={{ color: item.color }} />}
+      {item.type === 'order' && <Package size={18} style={{ color: item.color || '#10B981' }} />}
+      {item.type === 'marketing' && <Mail size={18} style={{ color: item.color || '#3B82F6' }} />}
+      {item.type === 'alert' && <AlertCircle size={18} style={{ color: item.color || '#EF4444' }} />}
+      {item.type === 'automation' && <Zap size={18} style={{ color: item.color || '#8B4A6B' }} />}
     </div>
     <div className="flex-1 min-w-0 ml-3">
       <p className="text-[13px] font-bold text-[#F1F1F8] truncate">{item.text}</p>
-      <p className="text-[11px] text-[#6B6B88] font-medium">{item.time}</p>
+      <p className="text-[11px] text-[#6B6B88] font-medium">{item.time || 'Just now'}</p>
     </div>
     {item.amount && (
       <span className="text-[12px] font-black text-[#10B981] ml-2 tabular-nums">
@@ -74,34 +36,50 @@ const ActivityItem: React.FC<{ item: any }> = ({ item }) => (
   </motion.div>
 );
 
-export const OverviewView: React.FC<{ loading: boolean }> = ({ loading }) => {
+export const OverviewView: React.FC<{ loading: boolean }> = ({ loading: authLoading }) => {
+  const { user } = useAuth();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<'Daily' | 'Weekly'>('Daily');
   const [visibleCount, setVisibleCount] = useState(0);
   const [showAllActivity, setShowAllActivity] = useState(false);
   const [activityFilter, setActivityFilter] = useState('all');
 
-  const chartData = period === 'Daily' ? DAILY_DATA : WEEKLY_DATA;
+  useEffect(() => {
+    async function load() {
+      if (!user) return;
+      setLoading(true);
+      const res = await fetchDashboardData(user.uid);
+      setData(res);
+      setLoading(false);
+    }
+    load();
+  }, [user]);
 
   // Auto-rotate live feed
   useEffect(() => {
+    if (!data?.activity?.length) return;
     const timer = setInterval(() => {
-      setVisibleCount(c => (c + 1) % ALL_ACTIVITIES.length);
+      setVisibleCount(c => (c + 1) % data.activity.length);
     }, 6000);
     return () => clearInterval(timer);
-  }, []);
+  }, [data]);
 
-  const displayedActivities = Array.from({ length: 4 }, (_, i) =>
-    ALL_ACTIVITIES[(visibleCount + i) % ALL_ACTIVITIES.length]
-  );
+  const chartData = data?.snapshots?.map((s: any) => ({
+    label: new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    revenue: s.revenue
+  })).reverse() || [];
+
+  const displayedActivities = data?.activity?.slice(0, 4) || [];
 
   return (
     <div className="space-y-6 lg:space-y-8">
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
-        <MetricCard label="Revenue" value="$142.8k" change="+12%" trend="up" loading={loading} />
-        <MetricCard label="ROAS" value="4.2x" change="+0.8" trend="up" loading={loading} />
-        <MetricCard label="Conv." value="3.84%" change="-0.2%" trend="down" loading={loading} />
-        <MetricCard label="AI Impact" value="$31.2k" change="+18%" trend="up" loading={loading} />
+        <MetricCard label="Revenue" value="$142.8k" change="+12%" trend="up" loading={loading || authLoading} />
+        <MetricCard label="ROAS" value="4.2x" change="+0.8" trend="up" loading={loading || authLoading} />
+        <MetricCard label="Conv." value="3.84%" change="-0.2%" trend="down" loading={loading || authLoading} />
+        <MetricCard label="AI Impact" value="$31.2k" change="+18%" trend="up" loading={loading || authLoading} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -128,7 +106,7 @@ export const OverviewView: React.FC<{ loading: boolean }> = ({ loading }) => {
             </div>
             
             <div className="flex-1 min-h-[240px] w-full">
-              {loading ? <Skeleton h="100%" w="100%" r={16} /> : (
+              {loading || authLoading ? <Skeleton h="100%" w="100%" r={16} /> : (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
@@ -188,8 +166,8 @@ export const OverviewView: React.FC<{ loading: boolean }> = ({ loading }) => {
             </div>
             <div className="space-y-1 flex-1">
               <AnimatePresence mode="popLayout">
-                {displayedActivities.map((item, i) => (
-                  <ActivityItem key={`${visibleCount}-${i}`} item={item} />
+                {displayedActivities.map((item: any, i: number) => (
+                  <ActivityItem key={item.id || i} item={item} />
                 ))}
               </AnimatePresence>
             </div>
@@ -248,10 +226,10 @@ export const OverviewView: React.FC<{ loading: boolean }> = ({ loading }) => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
-                {ALL_ACTIVITIES
-                  .filter(item => activityFilter === 'all' || item.type === activityFilter)
-                  .map((item, i) => (
-                    <ActivityItem key={i} item={item} />
+                {(data?.activity || [])
+                  .filter((item: any) => activityFilter === 'all' || item.type === activityFilter)
+                  .map((item: any, i: number) => (
+                    <ActivityItem key={item.id || i} item={item} />
                   ))}
               </div>
             </motion.div>
@@ -262,72 +240,94 @@ export const OverviewView: React.FC<{ loading: boolean }> = ({ loading }) => {
   );
 };
 
-export const AnalyticsView: React.FC<{ loading: boolean }> = ({ loading }) => (
-  <div className="space-y-6 lg:space-y-8">
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
-      <Card className="min-h-[350px]">
-        <div className="mb-8">
-          <h3 className="text-lg font-bold text-[#F1F1F8] tracking-tight">Sales by Category</h3>
-          <p className="text-xs text-[#6B6B88]">Product performance distribution</p>
-        </div>
-        <div className="h-[250px] lg:h-[300px]">
-          {loading ? <Skeleton h="100%" w="100%" r={16} /> : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={CATEGORY_DATA} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#3D3D55', fontSize: 10, fontWeight: 700}} />
-                <YAxis axisLine={false} tickLine={false} tick={{fill: '#3D3D55', fontSize: 10, fontWeight: 700}} />
-                <Tooltip
-                  cursor={{ fill: 'rgba(255,255,255,0.03)' }}
-                  contentStyle={{
-                    background: '#0D0D1A', border: '1px solid #1E1E3A',
-                    borderRadius: '16px', color: '#F1F1F8', fontSize: '12px',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)', padding: '12px'
-                  }}
-                />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={40}>
-                  {CATEGORY_DATA.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </Card>
-      
-      <Card className="min-h-[350px]">
-        <div className="mb-8">
-          <h3 className="text-lg font-bold text-[#F1F1F8] tracking-tight">Channel Performance</h3>
-          <p className="text-xs text-[#6B6B88]">Traffic and conversion by source</p>
-        </div>
-        <div className="space-y-6">
-          {[
-            { name: 'Direct Store', value: 85, color: '#C9747A', trend: '+12%' },
-            { name: 'Social Ads', value: 62, color: '#8B4A6B', trend: '+5%' },
-            { name: 'Email Flow', value: 48, color: '#D4A0A3', trend: '+22%' },
-            { name: 'Organic', value: 35, color: '#F59E0B', trend: '-2%' },
-          ].map(channel => (
-            <div key={channel.name} className="space-y-3">
-              <div className="flex justify-between items-end">
-                <div>
-                  <span className="text-sm font-bold text-[#F1F1F8]">{channel.name}</span>
-                  <p className="text-[10px] font-black text-[#6B6B88] uppercase tracking-widest mt-0.5">{channel.trend} this week</p>
+export const AnalyticsView: React.FC<{ loading: boolean }> = ({ loading: authLoading }) => {
+  const { user } = useAuth();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      if (!user) return;
+      setLoading(true);
+      const res = await fetchDashboardData(user.uid);
+      setData(res);
+      setLoading(false);
+    }
+    load();
+  }, [user]);
+
+  const categoryData = data?.products?.map((p: any) => ({
+    name: p.name.split(' ')[0],
+    value: p.sales,
+    color: '#C9747A'
+  })) || [];
+
+  return (
+    <div className="space-y-6 lg:space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+        <Card className="min-h-[350px]">
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-[#F1F1F8] tracking-tight">Sales by Category</h3>
+            <p className="text-xs text-[#6B6B88]">Product performance distribution</p>
+          </div>
+          <div className="h-[250px] lg:h-[300px]">
+            {loading || authLoading ? <Skeleton h="100%" w="100%" r={16} /> : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={categoryData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#3D3D55', fontSize: 10, fontWeight: 700}} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#3D3D55', fontSize: 10, fontWeight: 700}} />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(255,255,255,0.03)' }}
+                    contentStyle={{
+                      background: '#0D0D1A', border: '1px solid #1E1E3A',
+                      borderRadius: '16px', color: '#F1F1F8', fontSize: '12px',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)', padding: '12px'
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={40}>
+                    {categoryData.map((entry: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </Card>
+        
+        <Card className="min-h-[350px]">
+          <div className="mb-8">
+            <h3 className="text-lg font-bold text-[#F1F1F8] tracking-tight">Channel Performance</h3>
+            <p className="text-xs text-[#6B6B88]">Traffic and conversion by source</p>
+          </div>
+          <div className="space-y-6">
+            {[
+              { name: 'Direct Store', value: 85, color: '#C9747A', trend: '+12%' },
+              { name: 'Social Ads', value: 62, color: '#8B4A6B', trend: '+5%' },
+              { name: 'Email Flow', value: 48, color: '#D4A0A3', trend: '+22%' },
+              { name: 'Organic', value: 35, color: '#F59E0B', trend: '-2%' },
+            ].map(channel => (
+              <div key={channel.name} className="space-y-3">
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-sm font-bold text-[#F1F1F8]">{channel.name}</p>
+                    <p className="text-[10px] font-bold text-[#10B981]">{channel.trend} vs last month</p>
+                  </div>
+                  <p className="text-xs font-black text-[#F1F1F8] tabular-nums">{channel.value}%</p>
                 </div>
-                <span className="text-sm font-black text-[#F1F1F8] tabular-nums">{channel.value}%</span>
+                <div className="h-2 bg-[#0D0D1A] rounded-full overflow-hidden border border-[#1E1E3A]">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${channel.value}%` }}
+                    className="h-full rounded-full"
+                    style={{ background: channel.color }}
+                  />
+                </div>
               </div>
-              <div className="h-3 bg-[#0D0D1A] rounded-full overflow-hidden border border-[#1E1E3A]">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${channel.value}%` }}
-                  transition={{ duration: 1, ease: 'easeOut' }}
-                  className="h-full rounded-full shadow-[0_0_10px_rgba(201,116,122,0.3)]"
-                  style={{ background: channel.color }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
+            ))}
+          </div>
+        </Card>
+      </div>
     </div>
-  </div>
-);
+  );
+};

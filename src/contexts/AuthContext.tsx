@@ -45,9 +45,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsub = firebaseAuth.onAuthStateChanged(async (firebaseUser) => {
+      setLoading(true);
       setUser(firebaseUser);
+      
       if (firebaseUser) {
-        const p = await firestoreHelpers.getProfile(firebaseUser.uid);
+        let p = await firestoreHelpers.getProfile(firebaseUser.uid);
+        
+        // If profile doesn't exist, create it and seed mock data
+        if (!p) {
+          console.log('Glowify: Creating new profile and seeding data...');
+          await firestoreHelpers.createUserProfile(firebaseUser);
+          await firestoreHelpers.seedMockData(firebaseUser.uid);
+          p = await firestoreHelpers.getProfile(firebaseUser.uid);
+        }
+        
         setProfile(p as UserProfile);
       } else {
         setProfile(null);

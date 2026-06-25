@@ -1,23 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Package, AlertTriangle, TrendingUp, BarChart3, ArrowRight, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { MetricCard } from '../MetricCard';
+import { useAuth } from '../../contexts/AuthContext';
+import { fetchDashboardData } from '../../lib/api';
 
-const BEAUTY_PRODUCTS = [
-  { id: 'prod_1', name: 'Vitamin C Brightening Serum', price: 89, cogs: 18, stock: 142, reorder: 50, velocity: 18.5, status: 'active', category: 'Serums' },
-  { id: 'prod_2', name: 'Hyaluronic Moisture Surge', price: 65, cogs: 14, stock: 12, reorder: 40, velocity: 12.2, status: 'low_stock', category: 'Moisturizers' },
-  { id: 'prod_3', name: 'AHA/BHA Exfoliating Cleanser', price: 52, cogs: 11, stock: 8, reorder: 45, velocity: 15.8, status: 'low_stock', category: 'Cleansers' },
-  { id: 'prod_4', name: 'Retinol Night Renewal Cream', price: 120, cogs: 28, stock: 210, reorder: 60, velocity: 22.4, status: 'active', category: 'Treatments' },
-  { id: 'prod_5', name: 'Peptide Firming Eye Serum', price: 95, cogs: 22, stock: 0, reorder: 30, velocity: 8.5, status: 'out_of_stock', category: 'Serums' },
-];
-
-const margin = (p: any) => Math.round(((p.price - p.cogs) / p.price) * 100);
-const daysLeft = (p: any) => p.velocity > 0 ? Math.floor(p.stock / p.velocity) : 999;
+const margin = (p: any) => Math.round(((p.price - (p.cogs || 15)) / p.price) * 100);
+const daysLeft = (p: any) => (p.velocity || 10) > 0 ? Math.floor(p.inventory / (p.velocity || 10)) : 999;
 
 export const InventoryView: React.FC = () => {
-  const lowStockProducts = BEAUTY_PRODUCTS.filter(p => p.status !== 'active');
-  const avgMargin = Math.round(BEAUTY_PRODUCTS.reduce((acc, p) => acc + margin(p), 0) / BEAUTY_PRODUCTS.length);
+  const { user } = useAuth();
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      if (!user) return;
+      setLoading(true);
+      const res = await fetchDashboardData(user.uid);
+      setData(res);
+      setLoading(false);
+    }
+    load();
+  }, [user]);
+
+  const products = data?.products || [];
+  const lowStockProducts = products.filter((p: any) => daysLeft(p) < 14);
+  const avgMargin = products.length > 0 
+    ? Math.round(products.reduce((acc: number, p: any) => acc + margin(p), 0) / products.length)
+    : 0;
 
   return (
     <div className="space-y-8">
@@ -33,17 +45,17 @@ export const InventoryView: React.FC = () => {
           </div>
           <p className="text-[13px] text-rose-200 leading-relaxed">
             <span className="font-black uppercase tracking-widest mr-2">Inventory Alert:</span>
-            2 products require immediate attention — <span className="font-bold">Hyaluronic Moisture Surge</span> (12 units, ~1 day) and <span className="font-bold">AHA/BHA Exfoliating Cleanser</span> (8 units, &lt;1 day).
+            {lowStockProducts.length} products require immediate attention.
           </p>
         </motion.div>
       )}
 
       {/* KPI Strip */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard label="Total SKUs" value="5" />
-        <MetricCard label="Avg Margin" value={`${avgMargin}%`} trend="up" />
-        <MetricCard label="Low Stock Alerts" value="2" trend="down" change="Critical" />
-        <MetricCard label="Out of Stock" value="1" trend="down" change="Action Required" />
+        <MetricCard label="Total SKUs" value={products.length.toString()} loading={loading} />
+        <MetricCard label="Avg Margin" value={`${avgMargin}%`} trend="up" loading={loading} />
+        <MetricCard label="Low Stock Alerts" value={lowStockProducts.length.toString()} trend="down" change="Critical" loading={loading} />
+        <MetricCard label="Out of Stock" value={products.filter((p: any) => p.inventory === 0).length.toString()} trend="down" change="Action Required" loading={loading} />
       </div>
 
       {/* Inventory Table */}
@@ -67,17 +79,18 @@ export const InventoryView: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {BEAUTY_PRODUCTS.map((p) => {
+              {products.map((p: any) => {
                 const dl = daysLeft(p);
                 const m = margin(p);
+                const status = p.inventory === 0 ? 'out_of_stock' : dl < 14 ? 'low_stock' : 'active';
                 return (
-                  <tr key={p.id} className={`border-b border-[#231820]/50 hover:bg-[#1A1218] transition-colors ${p.status === 'out_of_stock' ? 'bg-rose-500/[0.02]' : ''}`}>
+                  <tr key={p.id} className={`border-b border-[#231820]/50 hover:bg-[#1A1218] transition-colors ${status === 'out_of_stock' ? 'bg-rose-500/[0.02]' : ''}`}>
                     <td className="p-6">
                       <p className="text-sm font-bold text-[#F5EEF0]">{p.name}</p>
-                      <p className="text-[10px] text-[#6B5560] uppercase tracking-widest font-bold mt-1">{p.category}</p>
+                      <p className="text-[10px] text-[#6B5560] uppercase tracking-widest font-bold mt-1">{p.category || 'Beauty'}</p>
                     </td>
-                    <td className="p-6 text-sm font-bold text-[#B09AA0] tabular-nums">{p.stock}</td>
-                    <td className="p-6 text-sm font-medium text-[#6B5560] tabular-nums">{p.velocity}/day</td>
+                    <td className="p-6 text-sm font-bold text-[#B09AA0] tabular-nums">{p.inventory}</td>
+                    <td className="p-6 text-sm font-medium text-[#6B5560] tabular-nums">{p.velocity || 10}/day</td>
                     <td className="p-6">
                       <div className="flex items-center gap-2">
                         {dl === 0 ? (
@@ -97,11 +110,11 @@ export const InventoryView: React.FC = () => {
                     </td>
                     <td className="p-6">
                       <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${
-                        p.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                        p.status === 'low_stock' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
+                        status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                        status === 'low_stock' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
                         'bg-rose-500/10 text-rose-400 border-rose-500/20'
                       }`}>
-                        {p.status.replace('_', ' ')}
+                        {status.replace('_', ' ')}
                       </span>
                     </td>
                   </tr>
@@ -121,7 +134,7 @@ export const InventoryView: React.FC = () => {
           </h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={BEAUTY_PRODUCTS} layout="vertical" margin={{ left: 40 }}>
+              <BarChart data={products} layout="vertical" margin={{ left: 40 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#231820" horizontal={false} />
                 <XAxis type="number" axisLine={false} tickLine={false} tick={{fill: '#6B5560', fontSize: 10}} domain={[0, 100]} />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{fill: '#F5EEF0', fontSize: 10, fontWeight: 'bold'}} width={120} />
@@ -130,7 +143,7 @@ export const InventoryView: React.FC = () => {
                   contentStyle={{ background: '#080608', border: '1px solid #231820', borderRadius: '12px' }}
                 />
                 <Bar dataKey={(p) => margin(p)} name="Margin %" radius={[0, 4, 4, 0]}>
-                  {BEAUTY_PRODUCTS.map((p, i) => {
+                  {products.map((p: any, i: number) => {
                     const m = margin(p);
                     return <Cell key={i} fill={m > 80 ? '#C9747A' : m > 60 ? '#8B4A6B' : '#EF4444'} />;
                   })}
@@ -146,26 +159,23 @@ export const InventoryView: React.FC = () => {
             <ShieldAlert size={16} className="text-[#C9747A]" />
             AI Restock Tasks
           </h3>
-          {[
-            { name: 'Hyaluronic Moisture Surge', stock: 12, dl: 1, po: 200, cost: 2800, critical: false },
-            { name: 'AHA/BHA Exfoliating Cleanser', stock: 8, dl: '<1', po: 300, cost: 3300, critical: true },
-          ].map((item, i) => (
-            <div key={i} className={`p-5 rounded-2xl bg-[#140F14] border ${item.critical ? 'border-rose-500/30 shadow-lg shadow-rose-500/5' : 'border-[#231820]'} relative overflow-hidden group`}>
-              {item.critical && <div className="absolute top-0 left-0 w-1 h-full bg-rose-500" />}
+          {lowStockProducts.slice(0, 2).map((item: any, i: number) => (
+            <div key={i} className={`p-5 rounded-2xl bg-[#140F14] border ${daysLeft(item) < 7 ? 'border-rose-500/30 shadow-lg shadow-rose-500/5' : 'border-[#231820]'} relative overflow-hidden group`}>
+              {daysLeft(item) < 7 && <div className="absolute top-0 left-0 w-1 h-full bg-rose-500" />}
               <div className="flex items-center justify-between mb-3">
-                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${item.critical ? 'bg-rose-500 text-white' : 'bg-amber-500 text-black'}`}>
-                  {item.critical ? 'Critical' : 'Alert'}
+                <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${daysLeft(item) < 7 ? 'bg-rose-500 text-white' : 'bg-amber-500 text-black'}`}>
+                  {daysLeft(item) < 7 ? 'Critical' : 'Alert'}
                 </span>
                 <span className="text-[10px] text-[#6B5560] font-bold">PO-GEN-0{i+1}</span>
               </div>
               <h4 className="text-xs font-black text-[#F5EEF0] mb-2">{item.name}</h4>
               <div className="space-y-1 mb-4">
-                <p className="text-[11px] text-[#B09AA0]">Stock: <span className="text-rose-400 font-bold">{item.stock} units</span></p>
-                <p className="text-[11px] text-[#B09AA0]">Stockout: <span className="text-rose-400 font-bold">~{item.dl} day</span></p>
-                <p className="text-[11px] text-[#B09AA0]">Recommended PO: <span className="text-[#F5EEF0] font-bold">{item.po} units</span></p>
+                <p className="text-[11px] text-[#B09AA0]">Stock: <span className="text-rose-400 font-bold">{item.inventory} units</span></p>
+                <p className="text-[11px] text-[#B09AA0]">Stockout: <span className="text-rose-400 font-bold">~{daysLeft(item)} days</span></p>
+                <p className="text-[11px] text-[#B09AA0]">Recommended PO: <span className="text-[#F5EEF0] font-bold">200 units</span></p>
               </div>
               <div className="flex items-center justify-between pt-4 border-t border-[#231820]">
-                <span className="text-xs font-black text-[#F5EEF0]">${item.cost.toLocaleString()}</span>
+                <span className="text-xs font-black text-[#F5EEF0]">$2,800</span>
                 <button className="flex items-center gap-1.5 text-[10px] font-black text-[#C9747A] hover:text-[#D4A0A3] transition-colors">
                   Approve PO <ArrowRight size={12} />
                 </button>
