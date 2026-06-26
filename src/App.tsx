@@ -14,6 +14,7 @@ import { ActivityCenter } from './components/ActivityCenter';
 import { SettingsView } from './components/views/SettingsView';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DashboardProvider } from './contexts/DashboardContext';
+import { DataProvider } from './contexts/DataContext';
 import { AuthScreen } from './components/AuthScreen';
 import { CommandPalette } from './components/CommandPalette';
 import { NotificationCenter } from './components/NotificationCenter';
@@ -131,7 +132,9 @@ export default function App() {
   return (
     <AuthProvider>
       <DashboardProvider>
-        <AppShell />
+        <DataProvider>
+          <AppShell />
+        </DataProvider>
       </DashboardProvider>
     </AuthProvider>
   );

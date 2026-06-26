@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Package, AlertTriangle, TrendingUp, BarChart3, ArrowRight, ShieldAlert } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -6,44 +6,29 @@ import { MetricCard } from '../MetricCard';
 import { ConnectStore } from '../ConnectStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDashboard } from '../../contexts/DashboardContext';
-import { fetchDashboardData } from '../../lib/api';
+import { useData } from '../../contexts/DataContext';
 import { ShoppingBag, ArrowUpRight, ArrowDownRight, MoreHorizontal, Sparkles, Activity } from 'lucide-react';
 
 export const InventoryView: React.FC<{ onNavigate: (tab: string) => void }> = ({ onNavigate }) => {
   const { timeRange } = useDashboard();
-  const { user, profile } = useAuth();
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { profile } = useAuth();
+  const { products, loading } = useData();
 
   const hasApiKey = !!profile?.shopifyApiKey;
-
-  useEffect(() => {
-    async function load() {
-      if (!user || !hasApiKey) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      const res = await fetchDashboardData(user.uid);
-      setData(res);
-      setLoading(false);
-    }
-    load();
-  }, [user, hasApiKey]);
+  const lowStockCount = products.filter(p => p.inventory < 100).length;
+  const outOfStockCount = products.filter(p => p.inventory === 0).length;
 
   if (!hasApiKey && !loading) {
     return <ConnectStore onConnect={() => onNavigate('settings')} title="Manage Your Inventory" description="Connect your Shopify store to track stock levels, monitor sales velocity, and get AI-powered restock alerts." />;
   }
-
-  const products = data?.products || [];
 
   return (
     <div className="space-y-10">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard label="Total SKUs" value={products.length.toString()} loading={loading} />
         <MetricCard label="Avg Margin" value="64%" trend="up" loading={loading} />
-        <MetricCard label="Low Stock Alerts" value="4" trend="down" loading={loading} />
-        <MetricCard label="Out of Stock" value="2" trend="neutral" loading={loading} />
+        <MetricCard label="Low Stock Alerts" value={lowStockCount.toString()} trend={lowStockCount > 0 ? 'down' : 'up'} loading={loading} />
+        <MetricCard label="Out of Stock" value={outOfStockCount.toString()} trend={outOfStockCount > 0 ? 'neutral' : 'up'} loading={loading} />
       </div>
 
       <div className="bg-[#140F14] border border-[#231820] rounded-[32px] overflow-hidden shadow-2xl">
@@ -73,13 +58,13 @@ export const InventoryView: React.FC<{ onNavigate: (tab: string) => void }> = ({
               </tr>
             </thead>
             <tbody>
-              {products.map((p: any) => {
-                const healthScore = Math.floor(Math.random() * 40) + 60; // Mock score 60-100
+              {products.map((p) => {
+                const healthScore = p.inventory > 200 ? 85 : p.inventory > 100 ? 70 : p.inventory > 50 ? 50 : 25;
                 return (
                   <tr key={p.id} className="border-b border-[#231820]/50 hover:bg-[#1A1218] transition-colors group">
                     <td className="px-8 py-5">
-                      <p className="text-xs font-bold text-[#F5EEF0]">{p.name}</p>
-                      <p className="text-[10px] text-[#6B5560] font-bold mt-1 uppercase tracking-widest">{p.category || 'Beauty'}</p>
+                      <p className="text-xs font-bold text-[#F5EEF0]">{p.title}</p>
+                      <p className="text-[10px] text-[#6B5560] font-bold mt-1 uppercase tracking-widest">{p.type}</p>
                     </td>
                     <td className="px-8 py-5">
                       <div className="flex items-center gap-3">
@@ -92,8 +77,8 @@ export const InventoryView: React.FC<{ onNavigate: (tab: string) => void }> = ({
                         <span className="text-[11px] font-black text-white">{healthScore}</span>
                       </div>
                     </td>
-                    <td className="px-8 py-5 text-xs font-bold text-[#F5EEF0] text-right tabular-nums">{p.stock || 120}</td>
-                    <td className="px-8 py-5 text-xs font-bold text-[#F5EEF0] text-right tabular-nums">{p.velocity || '4.2/day'}</td>
+                    <td className="px-8 py-5 text-xs font-bold text-[#F5EEF0] text-right tabular-nums">{p.inventory}</td>
+                    <td className="px-8 py-5 text-xs font-bold text-[#F5EEF0] text-right tabular-nums">{p.units}/day</td>
                     <td className="px-8 py-5 text-xs font-bold text-[#10B981] text-right tabular-nums">68%</td>
                     <td className="px-8 py-5 text-center">
                       <button className="p-2 rounded-lg bg-white/5 text-[#6B5560] hover:text-[#C9747A] hover:bg-[#C9747A]/10 transition-all">

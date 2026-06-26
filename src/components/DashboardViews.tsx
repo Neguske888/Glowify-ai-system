@@ -6,9 +6,9 @@ import { Card, Skeleton } from './CommonUI';
 import { MetricCard } from './MetricCard';
 import { ConnectStore } from './ConnectStore';
 import { AIExecutiveSummary } from './AIExecutiveSummary';
-import { fetchDashboardData } from '../lib/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboard } from '../contexts/DashboardContext';
+import { useData } from '../contexts/DataContext';
 
 const ActivityItem: React.FC<{ item: any }> = ({ item }) => (
   <motion.div 
@@ -39,49 +39,40 @@ const ActivityItem: React.FC<{ item: any }> = ({ item }) => (
 );
 
 export const OverviewView: React.FC<{ loading: boolean; onNavigate: (tab: string) => void }> = ({ loading: authLoading, onNavigate }) => {
-  const { user, profile } = useAuth();
-  const { timeRange, setTimeRange } = useDashboard();
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [showAllActivity, setShowAllActivity] = useState(false);
-  const [activityFilter, setActivityFilter] = useState('all');
+  const { profile } = useAuth();
+  const { timeRange } = useDashboard();
+  const { metrics, loading } = useData();
 
   const hasApiKey = !!profile?.shopifyApiKey;
-
-  useEffect(() => {
-    async function load() {
-      if (!user || !hasApiKey) {
-        setLoading(false);
-        return;
-      }
-      setLoading(true);
-      // In a real app, we'd pass timeRange to the API
-      const res = await fetchDashboardData(user.uid);
-      setData(res);
-      setLoading(false);
-    }
-    load();
-  }, [user, hasApiKey, timeRange]);
 
   if (!hasApiKey && !authLoading) {
     return <ConnectStore onConnect={() => onNavigate('settings')} />;
   }
 
-  const chartData = data?.snapshots?.map((s: any) => ({
-    label: new Date(s.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    revenue: s.revenue
-  })).reverse() || [];
+  const chartData = [
+    { label: 'Jan', revenue: 42000 },
+    { label: 'Feb', revenue: 38000 },
+    { label: 'Mar', revenue: 55000 },
+    { label: 'Apr', revenue: 48000 },
+    { label: 'May', revenue: 62000 },
+    { label: 'Jun', revenue: 71000 },
+  ];
 
-  const displayedActivities = data?.activity?.slice(0, 4) || [];
+  const displayedActivities = [
+    { id: 1, type: 'order', text: 'New order from Sarah Chen', time: '2 min ago', color: '#10B981', amount: 124 },
+    { id: 2, type: 'marketing', text: 'Email campaign sent to 1,234 subscribers', time: '15 min ago', color: '#3B82F6' },
+    { id: 3, type: 'automation', text: 'Cart Recovery Flow completed', time: '1 hour ago', color: '#8B4A6B', amount: 89 },
+    { id: 4, type: 'alert', text: 'Low stock alert: Vitamin C Serum', time: '3 hours ago', color: '#EF4444' },
+  ];
 
   return (
     <div className="space-y-6 lg:space-y-8">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
         <MetricCard 
           label="Revenue" 
-          value={data?.snapshots?.[0]?.revenue ? `$${(data.snapshots[0].revenue/1000).toFixed(1)}k` : "$0.00"} 
-          change="+14%" 
-          trend="up" 
+          value={`$${metrics.revenue.value.toLocaleString()}`} 
+          change={`+${metrics.revenue.change}%`} 
+          trend={metrics.revenue.trend} 
           loading={loading || authLoading} 
           onClick={() => onNavigate('analytics')}
         />
@@ -94,10 +85,10 @@ export const OverviewView: React.FC<{ loading: boolean; onNavigate: (tab: string
           onClick={() => onNavigate('marketing')}
         />
         <MetricCard 
-          label="Conv." 
-          value="3.85%" 
-          change="+0.12%" 
-          trend="up" 
+          label="Orders" 
+          value={metrics.orders.value.toString()} 
+          change={`+${metrics.orders.change}%`} 
+          trend={metrics.orders.trend} 
           loading={loading || authLoading} 
           onClick={() => onNavigate('analytics')}
         />
