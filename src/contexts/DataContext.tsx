@@ -67,13 +67,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setLoading(true);
     setError(null);
     try {
-      // Generate mock data for demo - replace with real API calls
+      // Generate mock data for NEUROZEN LAB - replace with real API calls
       const mockProducts: Product[] = [
-        { id: 'p1', title: 'Hydrating Serum', vendor: 'GlowBrand', type: 'Skincare', price: 45, inventory: 234, sku: 'HYS-001', image: '', tags: ['bestseller'], revenue: 12450, units: 276 },
-        { id: 'p2', title: 'Vitamin C Cream', vendor: 'GlowBrand', type: 'Skincare', price: 62, inventory: 156, sku: 'VCC-002', image: '', tags: ['new'], revenue: 9672, units: 156 },
-        { id: 'p3', title: 'Night Repair Mask', vendor: 'GlowBrand', type: 'Mask', price: 38, inventory: 89, sku: 'NRM-003', image: '', tags: [], revenue: 6812, units: 179 },
-        { id: 'p4', title: 'Moisturizing Lotion', vendor: 'GlowBrand', type: 'Body', price: 29, inventory: 412, sku: 'MOL-004', image: '', tags: ['essential'], revenue: 11948, units: 412 },
-        { id: 'p5', title: 'Eye Cream', vendor: 'GlowBrand', type: 'Skincare', price: 78, inventory: 67, sku: 'EYC-005', image: '', tags: ['premium'], revenue: 5226, units: 67 },
+        { id: 'p1', title: 'Lion\'s Mane Capsules', vendor: 'NEUROZEN LAB', type: 'Nootropics', price: 49, inventory: 234, sku: 'LM-001', image: '', tags: ['bestseller'], revenue: 12450, units: 276 },
+        { id: 'p2', title: 'Reishi Extract', vendor: 'NEUROZEN LAB', type: 'Adaptogens', price: 62, inventory: 156, sku: 'RE-002', image: '', tags: ['new'], revenue: 9672, units: 156 },
+        { id: 'p3', title: 'Cordyceps Powder', vendor: 'NEUROZEN LAB', type: 'Performance', price: 54, inventory: 89, sku: 'CO-003', image: '', tags: [], revenue: 6812, units: 179 },
+        { id: 'p4', title: 'Focus Blend Stack', vendor: 'NEUROZEN LAB', type: 'Stacks', price: 79, inventory: 412, sku: 'FB-004', image: '', tags: ['essential'], revenue: 11948, units: 412 },
+        { id: 'p5', title: 'Sleep Support Complex', vendor: 'NEUROZEN LAB', type: 'Sleep', price: 38, inventory: 67, sku: 'SS-005', image: '', tags: ['premium'], revenue: 5226, units: 67 },
       ];
 
       const mockCustomers: Customer[] = [

@@ -1,5 +1,11 @@
-const SHOPIFY_STORE_URL = import.meta.env.VITE_SHOPIFY_STORE_URL || 'serenova-global.myshopify.com';
+const SHOPIFY_STORE_URL = import.meta.env.VITE_SHOPIFY_STORE_URL || 'neurozen-lab.myshopify.com';
 const SHOPIFY_API_VERSION = '2024-01';
+
+// Validate Shopify store domain format
+export const isValidShopifyDomain = (domain: string): boolean => {
+  const regex = /^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]\.myshopify\.com$/;
+  return regex.test(domain);
+};
 
 export interface ShopifyProduct {
   id: string;
