@@ -1,11 +1,14 @@
 // src/components/views/SettingsView.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Store, Lock, Plug, CreditCard, Eye, EyeOff, CheckCircle, AlertCircle, Save, Zap, Loader2, LogOut, X, Sparkles, MessageSquare, Activity } from 'lucide-react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db, firestoreHelpers } from '../../lib/firebase';
 import { updateProfile, linkWithCredential, EmailAuthProvider, updatePassword } from 'firebase/auth';
 import { useAuth } from '../../contexts/AuthContext';
+
+// Shopify domain validation regex
+const SHOPIFY_DOMAIN_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]\.myshopify\.com$/;
 
 // Integration status with animated indicators
 const IntegrationStatus: React.FC<{ status: 'connected' | 'pending' | 'disconnected' }> = ({ status }) => {
@@ -59,13 +62,82 @@ const Toast: React.FC<{ message: string; type: 'success' | 'error'; onClose: () 
   );
 };
 
+// Unsaved changes confirmation dialog
+const UnsavedDialog: React.FC<{ onSave: () => void; onDiscard: () => void; onCancel: () => void }> = ({ onSave, onDiscard, onCancel }) => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm"
+  >
+    <motion.div
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.9, opacity: 0 }}
+      className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-3xl p-8 max-w-md w-full mx-4 shadow-2xl"
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+          <AlertCircle size={24} className="text-amber-500" />
+        </div>
+        <h3 className="text-lg font-bold text-white">Unsaved Changes</h3>
+      </div>
+      <p className="text-sm text-[#6B6B88] mb-6">You have unsaved changes. Are you sure you want to leave? Your changes will be lost.</p>
+      <div className="flex gap-3">
+        <button onClick={onCancel} className="flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-[#6B6B88] border border-[#1E1E3A] hover:bg-white/5 transition-all">Cancel</button>
+        <button onClick={onDiscard} className="flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-white bg-[#1E1E3A] hover:bg-[#2A2A48] transition-all">Discard</button>
+        <button onClick={onSave} className="flex-1 py-3 rounded-xl text-xs font-bold uppercase tracking-widest text-white bg-gradient-to-r from-[#C9747A] to-[#8B4A6B] hover:opacity-90 transition-all">Save & Leave</button>
+      </div>
+    </motion.div>
+  </motion.div>
+);
+
+// Skeleton loader for form fields
+const SkeletonField: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`animate-pulse ${className}`}>
+    <div className="h-3 w-20 bg-[#1E1E3A] rounded mb-2"></div>
+    <div className="h-12 bg-[#1E1E3A] rounded-xl"></div>
+  </div>
+);
+
+// Skeleton loader for integration cards
+const SkeletonCard: React.FC = () => (
+  <div className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl p-5 animate-pulse">
+    <div className="flex items-start gap-3 mb-4">
+      <div className="w-10 h-10 rounded-xl bg-[#1E1E3A]"></div>
+      <div className="flex-1">
+        <div className="h-4 w-32 bg-[#1E1E3A] rounded mb-2"></div>
+        <div className="h-3 w-48 bg-[#1E1E3A] rounded"></div>
+      </div>
+    </div>
+    <div className="h-11 bg-[#1E1E3A] rounded-xl"></div>
+  </div>
+);
+
 // API Key field with eye toggle
 const ApiKeyField: React.FC<{
   label: string; description: string; placeholder: string; value: string;
   onChange: (v: string) => void; icon: React.ReactNode; accentColor: string;
   status: 'connected' | 'pending' | 'disconnected';
-}> = ({ label, description, placeholder, value, onChange, icon, accentColor, status }) => {
+  isLoading?: boolean;
+}> = ({ label, description, placeholder, value, onChange, icon, accentColor, status, isLoading }) => {
   const [show, setShow] = useState(false);
+  
+  if (isLoading) {
+    return (
+      <div className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl p-5 animate-pulse">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-[#1E1E3A]"></div>
+          <div className="flex-1">
+            <div className="h-4 w-32 bg-[#1E1E3A] rounded mb-2"></div>
+            <div className="h-3 w-48 bg-[#1E1E3A] rounded"></div>
+          </div>
+        </div>
+        <div className="h-11 bg-[#1E1E3A] rounded-xl"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl p-5 hover:border-[#2A2A48] transition-all group">
       <div className="flex items-start gap-3 mb-4">
@@ -117,7 +189,15 @@ type TabId = 'profile' | 'integrations' | 'billing';
 export const SettingsView: React.FC = () => {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>('profile');
+  const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingTab, setPendingTab] = useState<TabId | null>(null);
+
+  // Track original values for dirty checking
+  const [originalValues, setOriginalValues] = useState({
+    displayName: '', storeName: '', shopifyApiKey: '', shopifyStoreDomain: '', klaviyoApiKey: '', geminiApiKey: ''
+  });
 
   // Profile state
   const [displayName, setDisplayName] = useState('');
@@ -136,6 +216,7 @@ export const SettingsView: React.FC = () => {
   // API key state
   const [shopifyApiKey, setShopifyApiKey] = useState('');
   const [shopifyStoreDomain, setShopifyStoreDomain] = useState('');
+  const [shopifyDomainError, setShopifyDomainError] = useState('');
   const [klaviyoApiKey, setKlaviyoApiKey] = useState('');
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [savingKeys, setSavingKeys] = useState(false);
@@ -143,19 +224,94 @@ export const SettingsView: React.FC = () => {
   // UI state
   const [confirmSignOut, setConfirmSignOut] = useState(false);
 
+  // Check if form is dirty
+  const isDirty = 
+    displayName !== originalValues.displayName ||
+    storeName !== originalValues.storeName ||
+    shopifyApiKey !== originalValues.shopifyApiKey ||
+    shopifyStoreDomain !== originalValues.shopifyStoreDomain ||
+    klaviyoApiKey !== originalValues.klaviyoApiKey ||
+    geminiApiKey !== originalValues.geminiApiKey;
+
+  // Validate Shopify domain
+  const validateShopifyDomain = useCallback((domain: string) => {
+    if (!domain) {
+      setShopifyDomainError('');
+      return true;
+    }
+    if (!SHOPIFY_DOMAIN_REGEX.test(domain)) {
+      setShopifyDomainError('Must be in format: your-store.myshopify.com');
+      return false;
+    }
+    setShopifyDomainError('');
+    return true;
+  }, []);
+
+  // Handle Shopify domain change with validation
+  const handleShopifyDomainChange = (value: string) => {
+    setShopifyStoreDomain(value);
+    validateShopifyDomain(value);
+  };
+
   useEffect(() => {
     if (profile) {
-      setDisplayName(profile.displayName || '');
-      setStoreName(profile.storeName || '');
-      setShopifyApiKey(profile.shopifyApiKey || '');
-      setShopifyStoreDomain(profile.shopifyStoreDomain || '');
-      setKlaviyoApiKey(profile.klaviyoApiKey || '');
-      setGeminiApiKey(profile.geminiApiKey || '');
+      const values = {
+        displayName: profile.displayName || '',
+        storeName: profile.storeName || '',
+        shopifyApiKey: profile.shopifyApiKey || '',
+        shopifyStoreDomain: profile.shopifyStoreDomain || '',
+        klaviyoApiKey: profile.klaviyoApiKey || '',
+        geminiApiKey: profile.geminiApiKey || ''
+      };
+      setDisplayName(values.displayName);
+      setStoreName(values.storeName);
+      setShopifyApiKey(values.shopifyApiKey);
+      setShopifyStoreDomain(values.shopifyStoreDomain);
+      setKlaviyoApiKey(values.klaviyoApiKey);
+      setGeminiApiKey(values.geminiApiKey);
+      setOriginalValues(values);
+      setIsLoading(false);
     }
     if (user) {
       if (user.providerData.some(p => p.providerId === 'password')) setPasswordAlreadySet(true);
     }
   }, [profile, user]);
+
+  // Handle tab change with dirty check
+  const handleTabChange = (newTab: TabId) => {
+    if (isDirty) {
+      setPendingTab(newTab);
+      setShowUnsavedDialog(true);
+    } else {
+      setActiveTab(newTab);
+    }
+  };
+
+  const handleSaveAndSwitch = async () => {
+    setShowUnsavedDialog(false);
+    await handleSaveApiKeys();
+    if (pendingTab) setActiveTab(pendingTab);
+    setPendingTab(null);
+  };
+
+  const handleDiscardAndSwitch = () => {
+    // Reset to original values
+    setDisplayName(originalValues.displayName);
+    setStoreName(originalValues.storeName);
+    setShopifyApiKey(originalValues.shopifyApiKey);
+    setShopifyStoreDomain(originalValues.shopifyStoreDomain);
+    setKlaviyoApiKey(originalValues.klaviyoApiKey);
+    setGeminiApiKey(originalValues.geminiApiKey);
+    setShopifyDomainError('');
+    setShowUnsavedDialog(false);
+    if (pendingTab) setActiveTab(pendingTab);
+    setPendingTab(null);
+  };
+
+  const handleCancelDialog = () => {
+    setShowUnsavedDialog(false);
+    setPendingTab(null);
+  };
 
   const handleSaveProfile = async () => {
     if (!user) return;
@@ -164,6 +320,7 @@ export const SettingsView: React.FC = () => {
       await updateProfile(user, { displayName });
       await setDoc(doc(db, 'users', user.uid), { displayName, storeName, updatedAt: serverTimestamp() }, { merge: true });
       await refreshProfile();
+      setOriginalValues(prev => ({ ...prev, displayName, storeName }));
       setToast({ message: 'Profile updated successfully', type: 'success' });
     } catch { setToast({ message: 'Failed to update profile', type: 'error' }); }
     finally { setSavingProfile(false); }
@@ -189,17 +346,22 @@ export const SettingsView: React.FC = () => {
 
   const handleSaveApiKeys = async () => {
     if (!user || !db) return;
+    if (!validateShopifyDomain(shopifyStoreDomain)) return;
     setSavingKeys(true);
     await new Promise(resolve => setTimeout(resolve, 1500));
     try {
       await setDoc(doc(db, 'users', user.uid), { shopifyApiKey, shopifyStoreDomain, klaviyoApiKey, geminiApiKey, updatedAt: serverTimestamp() }, { merge: true });
       await refreshProfile();
+      setOriginalValues(prev => ({ ...prev, shopifyApiKey, shopifyStoreDomain, klaviyoApiKey, geminiApiKey }));
       setToast({ message: 'Integrations saved successfully', type: 'success' });
     } catch { setToast({ message: 'Failed to save integrations', type: 'error' }); }
     finally { setSavingKeys(false); }
   };
 
   const getStatus = (key: string) => key && key.length > 0 ? 'connected' : 'disconnected';
+
+  // Check if save button should be disabled
+  const isSaveDisabled = !validateShopifyDomain(shopifyStoreDomain) || savingKeys;
 
   const tabs = [
     { id: 'profile' as TabId, label: 'Account', icon: <User size={16} /> },
@@ -210,6 +372,7 @@ export const SettingsView: React.FC = () => {
   return (
     <div className="space-y-6">
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {showUnsavedDialog && <UnsavedDialog onSave={handleSaveAndSwitch} onDiscard={handleDiscardAndSwitch} onCancel={handleCancelDialog} />}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -219,7 +382,7 @@ export const SettingsView: React.FC = () => {
         </div>
         <div className="flex items-center gap-1 bg-[#0F0F1E] p-1 rounded-2xl border border-[#1E1E3A]">
           {tabs.map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            <button key={tab.id} onClick={() => handleTabChange(tab.id)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${activeTab === tab.id ? 'bg-[#C9747A] text-white shadow-lg' : 'text-[#6B6B88] hover:text-white hover:bg-white/5'}`}>
               {tab.icon}<span className="hidden sm:inline">{tab.label}</span>
             </button>
@@ -236,32 +399,42 @@ export const SettingsView: React.FC = () => {
                 <div className="w-12 h-12 rounded-2xl bg-[#C9747A]/10 flex items-center justify-center"><User size={24} className="text-[#C9747A]" /></div>
                 <div><h3 className="text-[15px] font-bold text-[#F5EEF0]">Account Profile</h3><p className="text-[11px] text-[#6B5560]">Your personal information</p></div>
               </div>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-[#6B6B88] uppercase tracking-widest ml-1">Display Name</label>
-                    <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Your name"
-                      className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3.5 text-sm text-[#F1F1F8] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#C9747A]/50 transition-all" />
+              {isLoading ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <SkeletonField />
+                    <SkeletonField />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-[#6B6B88] uppercase tracking-widest ml-1">Email</label>
-                    <input type="email" value={user?.email || ''} disabled className="w-full bg-[#0A0A14] border border-[#1E1E3A] rounded-xl px-4 py-3.5 text-sm text-[#6B6B88] cursor-not-allowed" />
-                  </div>
+                  <SkeletonField />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-[#6B6B88] uppercase tracking-widest ml-1">Store Name</label>
-                  <div className="relative">
-                    <Store size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3D3D55]" />
-                    <input type="text" value={storeName} onChange={e => setStoreName(e.target.value)} placeholder="Your Shopify store name"
-                      className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl pl-11 pr-4 py-3.5 text-sm text-[#F1F1F8] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#C9747A]/50 transition-all" />
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-[#6B6B88] uppercase tracking-widest ml-1">Display Name</label>
+                      <input type="text" value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Your name"
+                        className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3.5 text-sm text-[#F1F1F8] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#C9747A]/50 transition-all" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-[#6B6B88] uppercase tracking-widest ml-1">Email</label>
+                      <input type="email" value={user?.email || ''} disabled className="w-full bg-[#0A0A14] border border-[#1E1E3A] rounded-xl px-4 py-3.5 text-sm text-[#6B6B88] cursor-not-allowed" />
+                    </div>
                   </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-[#6B6B88] uppercase tracking-widest ml-1">Store Name</label>
+                    <div className="relative">
+                      <Store size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3D3D55]" />
+                      <input type="text" value={storeName} onChange={e => setStoreName(e.target.value)} placeholder="Your Shopify store name"
+                        className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl pl-11 pr-4 py-3.5 text-sm text-[#F1F1F8] placeholder:text-[#3D3D55] focus:outline-none focus:border-[#C9747A]/50 transition-all" />
+                    </div>
+                  </div>
+                  <button onClick={handleSaveProfile} disabled={savingProfile}
+                    className="flex items-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{ background: savingProfile ? '#6B5560' : 'linear-gradient(135deg, #C9747A, #8B4A6B)' }}>
+                    {savingProfile ? <><Loader2 size={16} className="animate-spin" /> Saving...</> : <><Save size={16} /> Save Profile</>}
+                  </button>
                 </div>
-                <button onClick={handleSaveProfile} disabled={savingProfile}
-                  className="flex items-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-xs uppercase tracking-widest text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ background: savingProfile ? '#6B5560' : 'linear-gradient(135deg, #C9747A, #8B4A6B)' }}>
-                  {savingProfile ? <><Loader2 size={16} className="animate-spin" /> Saving...</> : <><Save size={16} /> Save Profile</>}
-                </button>
-              </div>
+              )}
             </section>
 
             {/* Security */}
@@ -329,8 +502,10 @@ export const SettingsView: React.FC = () => {
               </div>
               <div className="space-y-4">
                 <ApiKeyField label="Shopify Admin API" description="Connect your Shopify store for product & order sync." placeholder="shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  value={shopifyApiKey} onChange={setShopifyApiKey} icon={<Store size={18} />} accentColor="#95BF47" status={getStatus(shopifyApiKey)} />
-                <div className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl p-5">
+                  value={shopifyApiKey} onChange={setShopifyApiKey} icon={<Store size={18} />} accentColor="#95BF47" status={getStatus(shopifyApiKey)} isLoading={isLoading} />
+                
+                {/* Shopify Domain with validation */}
+                <div className="bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl p-5 hover:border-[#2A2A48] transition-all group">
                   <div className="flex items-start gap-3 mb-4">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#95BF47]/10 border border-[#95BF47]/25"><Store size={18} style={{ color: '#95BF47' }} /></div>
                     <div className="flex-1 min-w-0">
@@ -341,16 +516,31 @@ export const SettingsView: React.FC = () => {
                       <p className="text-xs text-[#6B6B88] mt-0.5">Your myshopify.com store URL</p>
                     </div>
                   </div>
-                  <input type="text" value={shopifyStoreDomain} onChange={e => setShopifyStoreDomain(e.target.value)} placeholder="your-store.myshopify.com"
-                    className="w-full bg-[#07070F] border border-[#1E1E3A] rounded-xl px-4 py-3 text-sm text-[#F1F1F8] placeholder:text-[#3D3D55] font-mono focus:outline-none focus:border-[#C9747A]/50 transition-all" />
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={shopifyStoreDomain} 
+                      onChange={e => handleShopifyDomainChange(e.target.value)} 
+                      placeholder="your-store.myshopify.com"
+                      className={`w-full bg-[#07070F] border rounded-xl px-4 py-3 text-sm text-[#F1F1F8] placeholder:text-[#3D3D55] font-mono focus:outline-none focus:border-[#C9747A]/50 transition-all ${
+                        shopifyDomainError ? 'border-[#EF4444]/50' : 'border-[#1E1E3A]'
+                      }`}
+                    />
+                  </div>
+                  {shopifyDomainError && (
+                    <p className="text-[10px] text-[#EF4444] mt-2 font-bold uppercase tracking-wider flex items-center gap-1">
+                      <AlertCircle size={10} /> {shopifyDomainError}
+                    </p>
+                  )}
                 </div>
+
                 <ApiKeyField label="Klaviyo Private Key" description="Automate flows and marketing campaigns." placeholder="pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  value={klaviyoApiKey} onChange={setKlaviyoApiKey} icon={<MessageSquare size={18} />} accentColor="#3B82F6" status={getStatus(klaviyoApiKey)} />
+                  value={klaviyoApiKey} onChange={setKlaviyoApiKey} icon={<MessageSquare size={18} />} accentColor="#3B82F6" status={getStatus(klaviyoApiKey)} isLoading={isLoading} />
                 <ApiKeyField label="Gemini AI Engine" description="Powers AI agents and product intelligence." placeholder="AIzaSy..."
-                  value={geminiApiKey} onChange={setGeminiApiKey} icon={<Sparkles size={18} />} accentColor="#C9747A" status={getStatus(geminiApiKey)} />
+                  value={geminiApiKey} onChange={setGeminiApiKey} icon={<Sparkles size={18} />} accentColor="#C9747A" status={getStatus(geminiApiKey)} isLoading={isLoading} />
               </div>
             </section>
-            <button onClick={handleSaveApiKeys} disabled={savingKeys}
+            <button onClick={handleSaveApiKeys} disabled={isSaveDisabled}
               className="flex items-center gap-2.5 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest text-white transition-all shadow-xl hover:shadow-[#C9747A]/20 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto justify-center"
               style={{ background: savingKeys ? 'linear-gradient(135deg, #6B5560, #4A3A48)' : 'linear-gradient(135deg, #C9747A, #8B4A6B)' }}>
               {savingKeys ? <><Loader2 size={16} className="animate-spin" /> Synchronizing...</> : <><Save size={16} /> Save Integrations</>}
