@@ -1,0 +1,13 @@
+{
+  "name": "@glowify/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "bullmq": "^5.76.10",
+    "dotenv": "^17.4.2",
+    "firebase-admin": "^13.10.0",
+    "ioredis": "^5.10.1",
+    "stripe": "^22.1.1"
+  }
+}

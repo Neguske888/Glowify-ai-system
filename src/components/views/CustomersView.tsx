@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Heart, MapPin, Star, Sparkles } from 'lucide-react';
+import { Users, UserPlus, Heart, MapPin, Star, Sparkles, Search, Filter, Download, MoreHorizontal, Mail, Tag, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { MetricCard } from '../MetricCard';
-import { Search, Filter, Download, MoreHorizontal, UserPlus, Mail, Tag, Plus } from 'lucide-react';
 
 const SEGMENTS = [
   { name: 'VIP / High LTV', count: 284, pct: 8, ltv: 680, color: '#C9747A' },
