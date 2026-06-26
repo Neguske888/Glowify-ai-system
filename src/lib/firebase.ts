@@ -1,26 +1,29 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { 
-  getAuth, 
-  onAuthStateChanged, 
-  User, 
-  GoogleAuthProvider, 
+import {
+  getAuth,
+  onAuthStateChanged,
+  User,
+  GoogleAuthProvider,
   signInWithPopup,
   signOut as firebaseSignOut,
   setPersistence,
   browserLocalPersistence
 } from 'firebase/auth';
-import { 
-  getFirestore, 
-  doc, 
-  getDoc, 
-  setDoc, 
-  serverTimestamp, 
-  collection, 
-  query, 
-  getDocs, 
-  orderBy, 
-  limit
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  serverTimestamp,
+  collection,
+  query,
+  getDocs,
+  orderBy,
+  limit,
+  onSnapshot,
+  Unsubscribe
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -48,7 +51,7 @@ export const firebaseAuth = {
     if (!auth) throw new Error("Firebase Auth not initialized");
     return signInWithPopup(auth, googleProvider);
   },
-  
+
   signOut: async () => {
     if (!auth) throw new Error("Firebase Auth not initialized");
     return firebaseSignOut(auth);
@@ -111,6 +114,87 @@ export const firestoreHelpers = {
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (err: any) {
       return [];
+    }
+  },
+
+  // Subscribe to real-time telemetry/logs
+  subscribeToLogs: (uid: string, callback: (logs: any[]) => void): Unsubscribe => {
+    if (!db) {
+      callback([]);
+      return () => {};
+    }
+    
+    const q = query(
+      collection(db, 'users', uid, 'telemetry'),
+      orderBy('timestamp', 'desc'),
+      limit(50)
+    );
+
+    return onSnapshot(q, (snapshot) => {
+      const logs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate?.() || new Date()
+      }));
+      callback(logs);
+    }, (error) => {
+      console.error('Error subscribing to logs:', error);
+      callback([]);
+    });
+  },
+
+  // Subscribe to agent states
+  subscribeToAgents: (uid: string, callback: (agents: any[]) => void): Unsubscribe => {
+    if (!db) {
+      callback([]);
+      return () => {};
+    }
+    
+    const q = query(collection(db, 'users', uid, 'agents'));
+
+    return onSnapshot(q, (snapshot) => {
+      const agents = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      callback(agents);
+    }, (error) => {
+      console.error('Error subscribing to agents:', error);
+      callback([]);
+    });
+  },
+
+  // Update agent status
+  updateAgentStatus: async (uid: string, agentId: string, status: 'active' | 'paused') => {
+    if (!db) return;
+    try {
+      await updateDoc(doc(db, 'users', uid, 'agents', agentId), {
+        status,
+        updatedAt: serverTimestamp()
+      });
+    } catch (err) {
+      console.error('Error updating agent status:', err);
+    }
+  },
+
+  // Get integrations from user profile
+  getIntegrations: async (uid: string) => {
+    if (!db) return null;
+    try {
+      const snap = await getDoc(doc(db, 'users', uid));
+      if (snap.exists()) {
+        const data = snap.data();
+        return {
+          shopifyApiKey: data.shopifyApiKey || '',
+          shopifyStoreDomain: data.shopifyStoreDomain || '',
+          klaviyoApiKey: data.klaviyoApiKey || '',
+          geminiApiKey: data.geminiApiKey || ''
+        };
+      }
+      return null;
+    } catch (err) {
+      console.error('Error getting integrations:', err);
+      return null;
     }
   }
 };
