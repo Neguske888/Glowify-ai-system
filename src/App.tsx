@@ -15,6 +15,7 @@ import { DashboardProvider } from './contexts/DashboardContext';
 import { DataProvider } from './contexts/DataContext';
 import { AuthScreen } from './components/AuthScreen';
 import { DashboardShell } from './components/DashboardShell';
+import { TechBackground } from './components/CommonUI';
 
 // ─── Premium Auth Loading Screen ─────────────────────────────────────────
 const AuthLoadingScreen: React.FC = () => (
