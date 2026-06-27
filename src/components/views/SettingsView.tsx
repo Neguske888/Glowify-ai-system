@@ -272,6 +272,13 @@ export const SettingsView: React.FC = () => {
   const [geminiApiKey, setGeminiApiKey] = useState('');
   const [savingKeys, setSavingKeys] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  
+  // Connection status state for each integration (dynamically updated after test)
+  const [connectionStatus, setConnectionStatus] = useState<Record<string, 'connected' | 'pending' | 'disconnected'>>({
+    shopify: 'disconnected',
+    klaviyo: 'disconnected',
+    gemini: 'disconnected'
+  });
 
   const isDirty = displayName !== originalValues.displayName || storeName !== originalValues.storeName || shopifyApiKey !== originalValues.shopifyApiKey || shopifyStoreDomain !== originalValues.shopifyStoreDomain || klaviyoApiKey !== originalValues.klaviyoApiKey || geminiApiKey !== originalValues.geminiApiKey;
 
@@ -280,6 +287,11 @@ export const SettingsView: React.FC = () => {
     if (!SHOPIFY_DOMAIN_REGEX.test(domain)) { setShopifyDomainError('Must be in format: your-store.myshopify.com'); return false; }
     setShopifyDomainError(''); return true;
   }, []);
+
+  // API Key format validators
+  const isValidShopifyKey = (key: string) => key.startsWith('shpat_') || key.startsWith('shpatla_');
+  const isValidKlaviyoKey = (key: string) => key.startsWith('pk_');
+  const isValidGeminiKey = (key: string) => key.startsWith('AIza');
 
   const handleShopifyDomainChange = (value: string) => {
     setShopifyStoreDomain(value);
@@ -349,6 +361,13 @@ export const SettingsView: React.FC = () => {
       setKlaviyoApiKey(values.klaviyoApiKey);
       setGeminiApiKey(values.geminiApiKey);
       setOriginalValues(values);
+      
+      // Update connection status based on saved API keys
+      setConnectionStatus({
+        shopify: values.shopifyApiKey && values.shopifyApiKey.length > 0 ? 'connected' : 'disconnected',
+        klaviyo: values.klaviyoApiKey && values.klaviyoApiKey.length > 0 ? 'connected' : 'disconnected',
+        gemini: values.geminiApiKey && values.geminiApiKey.length > 0 ? 'connected' : 'disconnected'
+      });
     }
   }, [profile]);
 
@@ -413,10 +432,25 @@ export const SettingsView: React.FC = () => {
   const handleSaveApiKeys = async () => {
     if (!user || !db) return;
     if (!validateShopifyDomain(shopifyStoreDomain)) return;
-    setSavingKeys(true);
     
+    // Validate API key formats before sending
+    if (shopifyApiKey && !isValidShopifyKey(shopifyApiKey)) {
+      setToast({ message: 'Invalid Shopify API key format (must start with shpat_ or shpatla_)', type: 'error' });
+      return;
+    }
+    if (klaviyoApiKey && !isValidKlaviyoKey(klaviyoApiKey)) {
+      setToast({ message: 'Invalid Klaviyo API key format (must start with pk_)', type: 'error' });
+      return;
+    }
+    if (geminiApiKey && !isValidGeminiKey(geminiApiKey)) {
+      setToast({ message: 'Invalid Gemini API key format (must start with AIza)', type: 'error' });
+      return;
+    }
+    
+    setSavingKeys(true);
+
     try {
-      // Attempt to execute real asynchronous POST request to secure /api/settings/save route
+      // Execute real asynchronous POST request to secure /api/settings/save endpoint
       const response = await fetch('/api/settings/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -430,56 +464,57 @@ export const SettingsView: React.FC = () => {
       });
 
       if (response.ok) {
-        // API call successful - trigger sliding success toast notification upon HTTP 200
+        // API call successful - refresh profile and trigger success toast
+        await refreshProfile();
+        setOriginalValues(prev => ({
+          ...prev,
+          shopifyApiKey,
+          shopifyStoreDomain,
+          klaviyoApiKey,
+          geminiApiKey
+        }));
+        
+        // Update connection status based on saved keys
+        setConnectionStatus({
+          shopify: shopifyApiKey ? 'connected' : 'disconnected',
+          klaviyo: klaviyoApiKey ? 'connected' : 'disconnected',
+          gemini: geminiApiKey ? 'connected' : 'disconnected'
+        });
+        
         setToast({ message: 'Integrations saved successfully', type: 'success' });
       } else {
-        // API call failed - fall back to direct Firestore write
+        // API returned error
         const errorData = await response.json().catch(() => ({}));
-        console.warn('API save failed, falling back to direct Firestore:', errorData);
-        
-        // Direct Firestore write as fallback
-        await setDoc(doc(db, 'users', user.uid), { 
-          shopifyApiKey, 
-          shopifyStoreDomain, 
-          klaviyoApiKey, 
-          geminiApiKey, 
-          updatedAt: serverTimestamp() 
-        }, { merge: true });
-        setToast({ message: 'Integrations saved successfully', type: 'success' });
+        throw new Error(errorData.error || 'Failed to save settings');
       }
     } catch (error: any) {
-      console.warn('API call failed, falling back to direct Firestore:', error);
-      
-      // Direct Firestore write as fallback for development/when API unavailable
+      console.error('Save error:', error);
+      // Fall back to direct Firestore write
       try {
-        await setDoc(doc(db, 'users', user.uid), { 
-          shopifyApiKey, 
-          shopifyStoreDomain, 
-          klaviyoApiKey, 
-          geminiApiKey, 
-          updatedAt: serverTimestamp() 
+        await setDoc(doc(db, 'users', user.uid), {
+          shopifyApiKey,
+          shopifyStoreDomain,
+          klaviyoApiKey,
+          geminiApiKey,
+          updatedAt: serverTimestamp()
         }, { merge: true });
+        await refreshProfile();
+        setOriginalValues(prev => ({
+          ...prev,
+          shopifyApiKey,
+          shopifyStoreDomain,
+          klaviyoApiKey,
+          geminiApiKey
+        }));
         setToast({ message: 'Integrations saved successfully', type: 'success' });
       } catch (dbError) {
         console.error('Firestore save error:', dbError);
-        setToast({ message: 'Failed to save integrations', type: 'error' });
+        setToast({ message: error.message || 'Failed to save integrations', type: 'error' });
         setSavingKeys(false);
         return;
       }
     }
-    
-    // Refresh profile to sync with latest data
-    await refreshProfile();
-    
-    // Update original values to track clean state
-    setOriginalValues(prev => ({ 
-      ...prev, 
-      shopifyApiKey, 
-      shopifyStoreDomain, 
-      klaviyoApiKey, 
-      geminiApiKey 
-    }));
-    
+
     setSavingKeys(false);
   };
 
@@ -512,11 +547,15 @@ export const SettingsView: React.FC = () => {
         
         // Handle response and trigger appropriate toast state
         if (result.success) {
+          // Update connection status to 'connected'
+          setConnectionStatus(prev => ({ ...prev, [type]: 'connected' }));
           setToast({ 
             message: `${type.charAt(0).toUpperCase() + type.slice(1)} connection verified!`, 
             type: 'success' 
           });
         } else {
+          // Update connection status to 'disconnected'
+          setConnectionStatus(prev => ({ ...prev, [type]: 'disconnected' }));
           setToast({ 
             message: result.message || `${type.charAt(0).toUpperCase() + type.slice(1)} connection failed`, 
             type: 'error' 
@@ -556,11 +595,13 @@ export const SettingsView: React.FC = () => {
     }
     
     if (isValid) {
+      setConnectionStatus(prev => ({ ...prev, [type]: 'connected' }));
       setToast({ 
         message: `${type.charAt(0).toUpperCase() + type.slice(1)} connection verified!`, 
         type: 'success' 
       });
     } else {
+      setConnectionStatus(prev => ({ ...prev, [type]: 'disconnected' }));
       setToast({ 
         message: `Invalid ${type} credentials format`, 
         type: 'error' 
@@ -694,7 +735,7 @@ export const SettingsView: React.FC = () => {
               </div>
               <div className="space-y-4">
                 <ApiKeyField label="Shopify Admin API" description="Connect your Shopify store for product & order sync." placeholder="shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  value={shopifyApiKey} onChange={setShopifyApiKey} icon={<Store size={18} />} accentColor="#10B981" status={getStatus(shopifyApiKey)} isLoading={isLoading}
+                  value={shopifyApiKey} onChange={setShopifyApiKey} icon={<Store size={18} />} accentColor="#10B981" status={connectionStatus.shopify} isLoading={isLoading}
                   onTestConnection={() => handleTestConnection('shopify')} isTesting={testingConnections.shopify} />
 
                 {isLoading ? (
@@ -732,10 +773,10 @@ export const SettingsView: React.FC = () => {
                 )}
 
                 <ApiKeyField label="Klaviyo Private Key" description="Automate flows and marketing campaigns." placeholder="pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  value={klaviyoApiKey} onChange={setKlaviyoApiKey} icon={<MessageSquare size={18} />} accentColor="#3B82F6" status={getStatus(klaviyoApiKey)} isLoading={isLoading}
+                  value={klaviyoApiKey} onChange={setKlaviyoApiKey} icon={<MessageSquare size={18} />} accentColor="#3B82F6" status={connectionStatus.klaviyo} isLoading={isLoading}
                   onTestConnection={() => handleTestConnection('klaviyo')} isTesting={testingConnections.klaviyo} />
                 <ApiKeyField label="Gemini AI Engine" description="Powers AI agents and product intelligence." placeholder="AIzaSy..."
-                  value={geminiApiKey} onChange={setGeminiApiKey} icon={<Sparkles size={18} />} accentColor="#C9747A" status={getStatus(geminiApiKey)} isLoading={isLoading}
+                  value={geminiApiKey} onChange={setGeminiApiKey} icon={<Sparkles size={18} />} accentColor="#C9747A" status={connectionStatus.gemini} isLoading={isLoading}
                   onTestConnection={() => handleTestConnection('gemini')} isTesting={testingConnections.gemini} />
               </div>
             </section>
