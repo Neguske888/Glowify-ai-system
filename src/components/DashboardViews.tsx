@@ -10,6 +10,7 @@ import { AIExecutiveSummary } from './AIExecutiveSummary';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboard } from '../contexts/DashboardContext';
 import { useData } from '../contexts/DataContext';
+import { getDrafts, updateDraftContent, aiService, Draft } from '../services/aiService';
 
 // Agent tag colors
 const AGENT_TAGS = {
@@ -166,6 +167,165 @@ const LiveLogsTerminal: React.FC = () => (
   </div>
 );
 
+// ─── AI Drafts Widget ────────────────────────────────────────────────────────────
+const DraftsWidget: React.FC = () => {
+  const { user } = useAuth();
+  const [drafts, setDrafts] = React.useState<Draft[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [generatingId, setGeneratingId] = React.useState<string | null>(null);
+
+  // Fetch drafts on mount
+  React.useEffect(() => {
+    if (user) {
+      loadDrafts();
+    }
+  }, [user]);
+
+  const loadDrafts = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const fetchedDrafts = await getDrafts(user.uid);
+      setDrafts(fetchedDrafts.filter(d => d.status !== 'approved').slice(0, 5));
+    } catch (error) {
+      console.error('Failed to load drafts:', error);
+    }
+    setLoading(false);
+  };
+
+  const handleAutoGenerate = async (draft: Draft) => {
+    if (!user || !draft.originalContent) return;
+    setGeneratingId(draft.id);
+
+    try {
+      const result = await aiService.processWithAI(user.uid, {
+        type: draft.type,
+        content: draft.originalContent
+      });
+
+      if (result.success && result.content) {
+        await updateDraftContent(user.uid, draft.id, result.content);
+        await loadDrafts();
+      }
+    } catch (error) {
+      console.error('Auto-generate failed:', error);
+    }
+
+    setGeneratingId(null);
+  };
+
+  if (loading) {
+    return (
+      <Card className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-[#C9747A]/15 flex items-center justify-center">
+            <FileText size={20} className="text-[#C9747A]" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-[#F1F1F8]">AI Drafts</h3>
+            <p className="text-xs text-[#6B6B88]">Pending approvals</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-20 bg-[#0a0a0b] rounded-xl animate-pulse" />
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#C9747A]/15 flex items-center justify-center">
+            <FileText size={20} className="text-[#C9747A]" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-[#F1F1F8]">AI Drafts</h3>
+            <p className="text-xs text-[#6B6B88]">{drafts.length} pending {drafts.length === 1 ? 'item' : 'items'}</p>
+          </div>
+        </div>
+        <button 
+          onClick={loadDrafts}
+          className="px-3 py-1.5 text-[10px] font-bold text-[#C9747A] uppercase tracking-wider hover:bg-white/5 rounded-lg transition-colors"
+        >
+          Refresh
+        </button>
+      </div>
+
+      <AnimatePresence mode="popLayout">
+        {drafts.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-8"
+          >
+            <div className="w-16 h-16 rounded-full bg-[#10B981]/10 mx-auto mb-3 flex items-center justify-center">
+              <Check size={24} className="text-[#10B981]" />
+            </div>
+            <p className="text-sm text-[#6B6B88]">No pending drafts</p>
+            <p className="text-xs text-[#3D3D55] mt-1">New products will appear here</p>
+          </motion.div>
+        ) : (
+          <div className="space-y-3">
+            {drafts.map(draft => (
+              <motion.div
+                key={draft.id}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="p-4 bg-[#0a0a0b] rounded-xl border border-[#1E1E3A] hover:border-[#2A2A48] transition-colors"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-[#C9747A]/15 text-[#C9747A] rounded uppercase">
+                        {draft.type.replace('_', ' ')}
+                      </span>
+                      <span className="flex items-center gap-1 text-[10px] text-[#6B6B88]">
+                        <Clock size={10} />
+                        {draft.createdAt?.toDate?.() ? 
+                          new Date(draft.createdAt.toDate()).toLocaleDateString() : 
+                          'Just now'}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-bold text-[#F1F1F8] truncate">{draft.title}</h4>
+                    {draft.generatedContent && (
+                      <p className="text-xs text-[#6B6B88] mt-1 line-clamp-2">
+                        {draft.generatedContent.substring(0, 100)}...
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => handleAutoGenerate(draft)}
+                    disabled={generatingId === draft.id}
+                    className="shrink-0 px-3 py-2 rounded-xl bg-[#C9747A]/15 hover:bg-[#C9747A]/25 text-[#C9747A] text-[10px] font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {generatingId === draft.id ? (
+                      <>
+                        <Loader2 size={12} className="animate-spin" />
+                        Generating
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={12} />
+                        {draft.status === 'generated' ? 'Regenerate' : 'Auto-Generate'}
+                      </>
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </AnimatePresence>
+    </Card>
+  );
+};
+
 export const OverviewView: React.FC<{ loading: boolean; onNavigate: (tab: string) => void }> = ({ loading: authLoading, onNavigate }) => {
   const { profile } = useAuth();
   const { timeRange, setTimeRange } = useDashboard();
@@ -238,6 +398,9 @@ export const OverviewView: React.FC<{ loading: boolean; onNavigate: (tab: string
       </div>
 
       <AIExecutiveSummary />
+
+      {/* AI Drafts Widget */}
+      <DraftsWidget />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Revenue Chart */}
