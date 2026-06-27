@@ -1,42 +1,34 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Heart, MapPin, Star, Sparkles } from 'lucide-react';
+import { Users, UserPlus, Heart, MapPin, Star, Sparkles, Search, Filter, Download, MoreHorizontal, Mail, Tag, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
 import { MetricCard } from '../MetricCard';
-import { Search, Filter, Download, MoreHorizontal, UserPlus, Mail, Tag, Plus } from 'lucide-react';
-
-const SEGMENTS = [
-  { name: 'VIP / High LTV', count: 284, pct: 8, ltv: 680, color: '#C9747A' },
-  { name: 'Active Subscribers', count: 1240, pct: 35, ltv: 310, color: '#8B4A6B' },
-  { name: 'One-Time Buyers', count: 1890, pct: 53, ltv: 89, color: '#3B82F6' },
-  { name: 'Lapsed (90d+)', count: 142, pct: 4, ltv: 95, color: '#F59E0B' },
-];
-
-const RETENTION_DATA = Array.from({length: 12}, (_, i) => ({
-  month: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][i],
-  retention: Math.round(62 - i * 2 + Math.random() * 8),
-  newCustomers: Math.round(180 + i * 15 + Math.random() * 40),
-}));
-
-const GEO_DATA = [
-  { country: 'United States', flag: '🇺🇸', revenue: 68200, customers: 1842, pct: 48 },
-  { country: 'United Kingdom', flag: '🇬🇧', revenue: 24800, customers: 612, pct: 17 },
-  { country: 'Canada', flag: '🇨🇦', revenue: 18400, customers: 448, pct: 13 },
-  { country: 'Australia', flag: '🇦🇺', revenue: 14200, customers: 310, pct: 10 },
-  { country: 'Germany', flag: '🇩🇪', revenue: 9600, customers: 188, pct: 7 },
-  { country: 'Other', flag: '🌍', revenue: 7640, customers: 156, pct: 5 },
-];
-
-const TOP_CUSTOMERS = [
-  { name: 'Priya Mehta', email: 'p.mehta@...', orders: 12, ltv: 1248, segment: 'VIP', lastOrder: '2d ago' },
-  { name: 'Claire Fontaine', email: 'c.f@...', orders: 9, ltv: 967, segment: 'VIP', lastOrder: '5d ago' },
-  { name: 'Amara Osei', email: 'a.osei@...', orders: 8, ltv: 842, segment: 'VIP', lastOrder: '1d ago' },
-  { name: 'Sophie Laurent', email: 's.l@...', orders: 7, ltv: 743, segment: 'Active', lastOrder: '8d ago' },
-  { name: 'Yuki Tanaka', email: 'y.t@...', orders: 6, ltv: 618, segment: 'Active', lastOrder: '3d ago' },
-];
+import { useData } from '../../contexts/DataContext';
 
 export const CustomersView: React.FC = () => {
+  const { customers, loading } = useData();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const SEGMENTS = [
+    { name: 'VIP / High LTV', count: customers.filter(c => c.segment === 'VIP').length, pct: 8, ltv: 680, color: '#C9747A' },
+    { name: 'Active Subscribers', count: customers.filter(c => c.segment === 'Active').length, pct: 35, ltv: 310, color: '#8B4A6B' },
+    { name: 'One-Time Buyers', count: customers.filter(c => c.segment === 'New').length, pct: 53, ltv: 89, color: '#3B82F6' },
+    { name: 'Lapsed (90d+)', count: 0, pct: 4, ltv: 95, color: '#F59E0B' },
+  ];
+
+  const GEO_DATA = [
+    { country: 'United States', flag: '🇺🇸', revenue: 68200, customers: 1842, pct: 48 },
+    { country: 'United Kingdom', flag: '🇬🇧', revenue: 24800, customers: 612, pct: 17 },
+    { country: 'Canada', flag: '🇨🇦', revenue: 18400, customers: 448, pct: 13 },
+    { country: 'Australia', flag: '🇦🇺', revenue: 14200, customers: 310, pct: 10 },
+    { country: 'Germany', flag: '🇩🇪', revenue: 9600, customers: 188, pct: 7 },
+    { country: 'Other', flag: '🌍', revenue: 7640, customers: 156, pct: 5 },
+  ];
+
+  const filteredCustomers = customers.filter(c => 
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="space-y-10">

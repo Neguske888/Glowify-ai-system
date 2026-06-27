@@ -13,18 +13,48 @@ The **Glowify AI Executive Dashboard** is a high-performance, real-time analytic
 
 ## Technical Architecture
 
-- **Frontend:** React (TypeScript) with Vite, styled with Vanilla CSS for a polished, performant UI.
+- **Frontend:** React (TypeScript) with Vite, styled with Tailwind CSS v4 for a polished, performant UI.
 - **Visualization:** Data-driven visualizations powered by `recharts`.
 - **Backend/Integrations:** Built on Firebase, utilizing Cloud Functions for real-time Shopify synchronization.
 - **Authentication:** Secured with Firebase Auth.
 
 ## Getting Started
 
-1. **Clone the repository:** `git clone https://github.com/your-repo-link.git`
-2. **Install dependencies:** `npm install`
-3. **Environment setup:** Configure your `.env` with Firebase credentials.
-4. **Development:** `npm run dev`
-5. **Production Build:** `npm run build`
+1. **Clone the repository:** `git clone <repository-url>`
+2. **Install dependencies:** `pnpm install`
+3. **Environment setup:** Copy `.env.example` to `.env` and configure your Firebase credentials.
+4. **Development:** `pnpm dev`
+5. **Production Build:** `pnpm build`
+
+## Environment Variables
+
+Copy `.env.example` to `.env` and configure the following variables:
+
+```bash
+# Firebase
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+
+# Gemini AI
+VITE_GEMINI_API_KEY=
+
+# App
+VITE_APP_ENV=development
+VITE_SHOPIFY_STORE_URL=serenova-global.myshopify.com
+```
+
+## Vercel Deployment
+
+This project is configured for deployment on Vercel. The `vercel.json` file at the root handles the build configuration and routing.
+
+1. Push your code to GitHub
+2. Import the project in Vercel
+3. Configure environment variables in Vercel dashboard
+4. Deploy automatically on push to main branch
 
 ## License
 

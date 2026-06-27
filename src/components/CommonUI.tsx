@@ -13,7 +13,7 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ children, className = "", metric }) => (
   <motion.div 
-    className={`glw-card bg-[#140F14] border border-[#231820] rounded-2xl p-6 shadow-xl relative overflow-hidden ${className}`}
+    className={`bg-[#0F0F1E] border border-[#1E1E3A] rounded-2xl p-6 shadow-lg relative overflow-hidden ${className}`}
   >
     {metric && (
       <svg style={{position:'absolute',top:'10px',right:'10px',opacity:0.18}} width="32" height="32" viewBox="0 0 32 32">
@@ -29,6 +29,44 @@ export const Card: React.FC<CardProps> = ({ children, className = "", metric }) 
     )}
   </motion.div>
 );
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Design System Typography Components
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Typography Components - Design System Standardization
+ * 
+ * CardHeader: For section/card headers
+ * - text-white, font-semibold, tracking-tight
+ * 
+ * HelperText: For descriptive/subtitle text
+ * - text-[#6B6B88], text-sm
+ */
+interface CardHeaderProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export const CardHeader: React.FC<CardHeaderProps> = ({ children, className = "" }) => (
+  <h3 className={`text-white font-semibold tracking-tight ${className}`}>
+    {children}
+  </h3>
+);
+
+interface HelperTextProps {
+  children: React.ReactNode;
+  className?: string;
+}
+
+export const HelperText: React.FC<HelperTextProps> = ({ children, className = "" }) => (
+  <p className={`text-[#6B6B88] text-sm ${className}`}>
+    {children}
+  </p>
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
 
 interface ToggleProps {
   checked: boolean;
