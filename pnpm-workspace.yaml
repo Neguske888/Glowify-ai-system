@@ -1,3 +1,7 @@
+packages:
+  - '.'
+  - 'glowify-ai'
+
 allowBuilds:
   '@firebase/util': set this to true or false
   '@google/genai': set this to true or false

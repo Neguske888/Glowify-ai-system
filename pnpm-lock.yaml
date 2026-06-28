@@ -6,6 +6,64 @@ settings:
 
 importers:
 
+  glowify-ai:
+    dependencies:
+      firebase:
+        specifier: ^12.13.0
+        version: 12.15.0
+      lucide-react:
+        specifier: ^1.16.0
+        version: 1.21.0(react@19.2.7)
+      react:
+        specifier: ^19.2.6
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.2.6
+        version: 19.2.7(react@19.2.7)
+      recharts:
+        specifier: ^3.8.1
+        version: 3.8.1(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react-is@19.2.7)(react@19.2.7)(redux@5.0.1)
+    devDependencies:
+      '@eslint/js':
+        specifier: ^10.0.1
+        version: 10.0.1(eslint@10.5.0(jiti@2.7.0))
+      '@tailwindcss/postcss':
+        specifier: ^4.3.0
+        version: 4.3.1
+      '@types/react':
+        specifier: ^19.2.14
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.2.3
+        version: 19.2.3(@types/react@19.2.17)
+      '@vitejs/plugin-react':
+        specifier: ^6.0.1
+        version: 6.0.2(vite@8.0.16(@types/node@26.0.0)(jiti@2.7.0)(terser@5.48.0))
+      autoprefixer:
+        specifier: ^10.5.0
+        version: 10.5.0(postcss@8.5.15)
+      eslint:
+        specifier: ^10.3.0
+        version: 10.5.0(jiti@2.7.0)
+      eslint-plugin-react-hooks:
+        specifier: ^7.1.1
+        version: 7.1.1(eslint@10.5.0(jiti@2.7.0))
+      eslint-plugin-react-refresh:
+        specifier: ^0.5.2
+        version: 0.5.3(eslint@10.5.0(jiti@2.7.0))
+      globals:
+        specifier: ^17.6.0
+        version: 17.7.0
+      postcss:
+        specifier: ^8.5.15
+        version: 8.5.15
+      tailwindcss:
+        specifier: ^4.3.0
+        version: 4.3.1
+      vite:
+        specifier: ^8.0.12
+        version: 8.0.16(@types/node@26.0.0)(jiti@2.7.0)(terser@5.48.0)
+
   .:
     dependencies:
       '@google/genai':
