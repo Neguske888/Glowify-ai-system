@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useMemo, createContext, useContext } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { io } from 'socket.io-client';
 
 // 1. Firebase Config Setup (Assuming it's available in your environment variables)
-const firebaseConfig = JSON.parse(process.env.FIREBASE_CONFIG || '{}');
+const firebaseConfig = JSON.parse(import.meta.env.VITE_FIREBASE_CONFIG || '{}');
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
@@ -32,24 +32,19 @@ export const AuthProvider = ({ children }) => {
 };
 
 // 3. WebSocket Hook
-export const useRealTimeMetrics = (user) => {
-  const [socket, setSocket] = useState(null);
-
+const useRealTimeMetrics = (user) => {
   useEffect(() => {
     if (!user) return;
 
-    const newSocket = io(process.env.VITE_SOCKET_URL, {
+    const newSocket = io(import.meta.env.VITE_SOCKET_URL, {
       extraHeaders: {
         'x-store-id': user.uid, // Simplified discriminator
-        'Authorization': `Bearer ${user.accessToken}`
-      }
+        Authorization: `Bearer ${user.accessToken}`,
+      },
     });
 
-    setSocket(newSocket);
     return () => newSocket.close();
   }, [user]);
-
-  return socket;
 };
 
 // 4. Main Protected App
@@ -74,8 +69,10 @@ const App = () => {
 // Mock AuthScreen for demonstration of the transition
 const AuthScreen = () => <div>Login Screen</div>;
 
-export default () => (
+const AppRoot = () => (
   <AuthProvider>
     <App />
   </AuthProvider>
 );
+
+export default AppRoot;

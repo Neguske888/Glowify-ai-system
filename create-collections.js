@@ -1,4 +1,5 @@
 import admin from 'firebase-admin';
+import process from 'node:process';
 
 // Initialize with your actual credentials as before
 const serviceAccount = {
