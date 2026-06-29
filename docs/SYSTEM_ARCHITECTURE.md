@@ -104,3 +104,102 @@ Glowify AI is being organized around a canonical frontend plus supporting backen
 - Avoid duplicated schema definitions.
 - Avoid cross-layer coupling that bypasses the API boundary.
 - Treat business outcome metrics as the source of truth for AI and automation quality.
+
+## Bootstrap Layer and Composition Root
+
+The platform bootstrap layer lives in `packages/bootstrap` and acts as the single composition root for platform contracts.
+
+- It wires together infrastructure, integrations, secret management, and backend contracts through in-memory orchestration.
+- It owns startup, shutdown, registration, validation, diagnostics, and health aggregation.
+- It remains provider-agnostic and does not initialize vendor SDKs, persistence layers, or runtime integrations.
+- It exposes metadata and lifecycle state only, not business logic or implementation details.
+
+## Observability Layer
+
+The observability layer lives in `packages/observability` and defines provider-agnostic contracts for logging, metrics, tracing, auditing, diagnostics, health reporting, and related event models.
+
+- It exposes metadata and contracts only.
+- It does not initialize vendor SDKs or publish to external systems.
+- It is designed to be consumed by infrastructure, bootstrap, and backend contracts without binding the platform to a specific observability stack.
+
+## Event Bus Layer
+
+The event bus layer lives in `packages/events` and defines provider-agnostic contracts for event publishing, subscription, dispatch, routing, retry, dead-letter handling, serialization, and middleware composition.
+
+- It models message metadata, delivery semantics, and registry state only.
+- It does not bind to brokers, queues, streams, SDKs, persistence, or networking.
+- It is intended to be consumed by bootstrap, infrastructure, and backend composition without introducing runtime implementations.
+
+## Workflow Engine Layer
+
+The workflow engine layer lives in `packages/workflows` and defines provider-agnostic contracts for workflow orchestration, execution, scheduling, state management, triggers, actions, conditions, retries, middleware, checkpoints, and compensation.
+
+- It expresses lifecycle and execution semantics without selecting a workflow engine or SDK.
+- It does not introduce persistence, networking, queues, or runtime implementations.
+- It is intended to compose with the event, observability, bootstrap, and infrastructure layers through contracts only.
+
+## Domain Layer
+
+The domain layer lives in `packages/domain` and contains the pure model contracts for entities, value objects, aggregate roots, repositories, specifications, domain events, unit of work, commands, queries, validation, and domain errors.
+
+- It provides reusable concepts such as tenant ownership, timestamps, versioning, soft delete, optimistic concurrency, and audit metadata.
+- It depends on no runtime provider, persistence engine, SDK, or infrastructure implementation.
+- It is consumed by bootstrap, infrastructure, workflows, events, observability, and integrations as a stable contract surface.
+
+## CQRS Layer
+
+The CQRS layer lives in `packages/cqrs` and defines provider-agnostic contracts for commands, queries, buses, handlers, dispatchers, execution contexts, middleware behaviors, validation, authorization, retry, idempotency, and result models.
+
+- It composes with the domain layer as the request/response boundary for application use cases.
+- It can publish or react to events through the events layer without embedding transport or broker assumptions.
+- It relies on bootstrap and infrastructure for composition and cross-cutting concerns, while observability captures metadata and execution signals.
+- It remains implementation-free and does not depend on workflows, integrations, persistence, or runtime providers.
+
+## Authorization Layer
+
+The authorization layer lives in `packages/authorization` and defines provider-agnostic contracts for permissions, roles, policies, scopes, principals, resources, access decisions, and authorization results.
+
+- It supports RBAC, ABAC, inherited permissions, wildcard permissions, delegated administration, and feature-gated access rules.
+- It composes with the domain layer for resource and tenant semantics, with CQRS for request evaluation boundaries, and with bootstrap and infrastructure for composition and policy resolution.
+- It can consume events, workflows, and observability metadata without depending on any authentication provider, storage engine, or middleware runtime.
+
+## Configuration Layer
+
+The configuration layer lives in `packages/configuration` and defines provider-agnostic contracts for configuration sources, providers, repositories, stores, resolvers, validators, schemas, snapshots, feature flags, and runtime configuration metadata.
+
+- It supports scoped configuration across global, tenant, organization, team, user, and environment boundaries.
+- It supports feature-flag strategies such as boolean, percentage rollout, allow/deny lists, role-based, permission-based, tenant-based, organization-based, and custom rules.
+- It composes with authorization and CQRS for policy-aware resolution, with domain for tenant and identity semantics, and with bootstrap, events, workflows, infrastructure, and observability as a contract-only platform layer.
+- It remains implementation-free and does not depend on any storage engine, SDK, or runtime provider.
+
+## Notifications Layer
+
+The notifications layer lives in `packages/notifications` and defines provider-agnostic contracts for notification services, providers, repositories, templates, delivery tracking, preferences, subscriptions, queues, schedulers, and renderers.
+
+- It supports multi-channel communication across email, SMS, push, WhatsApp, in-app, webhook, Slack, Discord, Microsoft Teams, and custom channels.
+- It models metadata, delivery states, template localization, and preference rules without implementing any transport or provider logic.
+- It composes with domain, CQRS, authorization, bootstrap, infrastructure, events, workflows, and observability as a contract-only surface.
+
+## Search & Indexing Layer
+
+The search and indexing layer lives in `packages/search` and defines provider-agnostic contracts for documents, queries, filters, sorting, facets, aggregations, highlights, suggestions, analyzers, tokenizers, repositories, providers, services, and registries.
+
+- It models full-text, exact match, fuzzy, prefix, autocomplete, wildcard, phrase, semantic, vector, and hybrid search as capabilities only.
+- It captures document and query metadata, scoring, pagination, and result explanation contracts without binding to any search engine or vector store.
+- It composes with domain, CQRS, bootstrap, infrastructure, events, workflows, and observability as a contract-only platform surface.
+
+## Storage Layer
+
+The storage layer lives in `packages/storage` and defines provider-agnostic contracts for storage objects, buckets, providers, repositories, services, upload and download strategies, lifecycle, versioning, retention, encryption, checksums, access policy, signed URLs, multipart uploads, thumbnails, transformations, and registries.
+
+- It models object metadata, lifecycle state, visibility, locking, virus scan metadata, moderation metadata, and storage operations without binding to any storage backend or SDK.
+- It supports single, multipart, resumable, and streaming upload strategies, with streaming, range, and partial download as contract-only capabilities.
+- It composes with domain, CQRS, bootstrap, infrastructure, events, workflows, and observability as a contract-only platform surface.
+
+
+## Billing & Subscription Layer
+
+The billing layer lives in `packages/billing` and defines provider-agnostic contracts for billing accounts, plans, subscriptions, invoices, payments, usage metering, entitlements, pricing, discounts, coupons, taxes, credits, refunds, trials, checkout, webhook handling, registries, repositories, services, and errors.
+
+- It models billing metadata, lifecycle state, and contract surfaces only.
+- It does not implement runtime behavior, persistence, networking, or payment provider integrations.
