@@ -275,3 +275,11 @@ The API gateway layer lives in `packages/api-gateway` and defines provider-agnos
 - It models routing metadata, protocol metadata, transport metadata, request/response context, and operational controls only.
 - It does not introduce runtime behavior, HTTP implementation, networking, persistence, filesystem access, SDK imports, or framework-specific assumptions.
 - It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, authorization, configuration, observability, AI, notifications, storage, billing, extensions, governance, adapters, authentication, and SDK contracts through metadata-only interfaces.
+
+## Messaging & Event Streaming Layer
+
+The messaging and event streaming layer lives in `packages/messaging` and defines provider-agnostic contracts for messages, headers, envelopes, metadata, attributes, topics, queues, exchanges, channels, partitions, offsets, consumers, producers, publishers, subscribers, subscriptions, brokers, streams, consumer groups, acknowledgments, delivery, retry, dead-letter handling, ordering, batching, serialization, deserialization, codecs, routing, filtering, priority, scheduling, retention, replay, checkpoints, snapshots, metrics, diagnostics, repositories, providers, registries, and services.
+
+- It models message metadata, delivery state, ordering strategy, offsets, checkpoints, retention, replay, and dead-letter metadata only.
+- It does not introduce runtime behavior, broker implementations, networking, persistence, filesystem access, SDK imports, or assumptions about Kafka, RabbitMQ, NATS, Redis Streams, Azure Service Bus, Google Pub/Sub, AWS SQS/SNS, or any other messaging platform.
+- It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, authorization, configuration, observability, AI, notifications, storage, billing, extensions, governance, adapters, authentication, SDK, and API gateway contracts through metadata-only interfaces.
