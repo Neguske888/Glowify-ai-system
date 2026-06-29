@@ -1,0 +1,11 @@
+export interface ValidationRule {
+  readonly ruleId: string
+  readonly name: string
+  readonly description?: string
+  readonly required?: boolean
+}
+
+export interface ValidationContract {
+  readonly validationId: string
+  readonly rules: readonly ValidationRule[]
+}

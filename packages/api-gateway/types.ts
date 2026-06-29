@@ -1,0 +1,12 @@
+export type GatewayId = string
+export type EndpointId = string
+export type RouteId = string
+export type RequestId = string
+export type ResponseId = string
+export type ProviderId = string
+export type VersionString = string
+export type Timestamp = string
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
+export type ProtocolName = "http" | "https" | "graphql" | "grpc" | "websocket" | "sse" | "rest" | "custom"
+export type TransportName = "http" | "grpc" | "websocket" | "sse" | "custom"
+export type GatewayLifecycleState = "draft" | "registered" | "active" | "paused" | "deprecated" | "retired"

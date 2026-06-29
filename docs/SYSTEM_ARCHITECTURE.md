@@ -267,3 +267,11 @@ The SDK layer lives in `packages/sdk` and defines provider-agnostic contracts fo
 - It models SDK metadata, client metadata, request and response metadata, endpoint metadata, operation metadata, transport metadata, and compatibility state only.
 - It does not introduce runtime logic, networking, persistence, filesystem access, HTTP implementation, transport implementation, or vendor-specific assumptions.
 - It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, authorization, configuration, observability, AI, notifications, storage, billing, extensions, governance, adapters, and authentication through contracts only.
+
+## API Gateway Layer
+
+The API gateway layer lives in `packages/api-gateway` and defines provider-agnostic contracts for gateway metadata, gateway context, requests, responses, endpoints, routes, routers, middleware, interceptors, pipelines, request context, response context, protocols, transports, serialization, deserialization, validation, authentication, authorization, rate limiting, throttling, quotas, caching, compression, CORS, versioning, negotiation, streaming, WebSocket, GraphQL, gRPC, REST, SSE, health, diagnostics, metrics, repositories, providers, registries, and services.
+
+- It models routing metadata, protocol metadata, transport metadata, request/response context, and operational controls only.
+- It does not introduce runtime behavior, HTTP implementation, networking, persistence, filesystem access, SDK imports, or framework-specific assumptions.
+- It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, authorization, configuration, observability, AI, notifications, storage, billing, extensions, governance, adapters, authentication, and SDK contracts through metadata-only interfaces.
