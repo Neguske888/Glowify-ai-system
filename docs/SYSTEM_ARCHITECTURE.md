@@ -283,3 +283,11 @@ The messaging and event streaming layer lives in `packages/messaging` and define
 - It models message metadata, delivery state, ordering strategy, offsets, checkpoints, retention, replay, and dead-letter metadata only.
 - It does not introduce runtime behavior, broker implementations, networking, persistence, filesystem access, SDK imports, or assumptions about Kafka, RabbitMQ, NATS, Redis Streams, Azure Service Bus, Google Pub/Sub, AWS SQS/SNS, or any other messaging platform.
 - It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, authorization, configuration, observability, AI, notifications, storage, billing, extensions, governance, adapters, authentication, SDK, and API gateway contracts through metadata-only interfaces.
+
+## Runtime Kernel Layer
+
+The runtime kernel layer lives in `packages/runtime` and defines provider-agnostic contracts for runtime metadata, kernel metadata, bootstrap, initialization, startup, shutdown, health, readiness, liveness, dependency graphs, resources, schedulers, workers, processes, execution, diagnostics, metrics, telemetry, configuration, registries, repositories, providers, and services.
+
+- It models lifecycle state, capability metadata, dependency metadata, resource metadata, and execution metadata only.
+- It does not introduce runtime behavior, filesystem access, networking, persistence, SDK imports, or assumptions about Node.js, Bun, Deno, Cloudflare Workers, Vercel, or any other execution host.
+- It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, observability, configuration, governance, adapters, messaging, API gateway, authentication, and SDK contracts through metadata-only interfaces.

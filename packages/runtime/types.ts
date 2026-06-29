@@ -1,0 +1,13 @@
+export type RuntimeId = string
+export type KernelId = string
+export type ModuleId = string
+export type PluginId = string
+export type WorkerId = string
+export type ProcessId = string
+export type ResourceId = string
+export type VersionString = string
+export type Timestamp = string
+export type LifecycleState = "draft" | "booting" | "active" | "paused" | "stopping" | "stopped" | "failed" | "terminated"
+export type HealthState = "unknown" | "healthy" | "degraded" | "unhealthy"
+export type ReadinessState = "unknown" | "ready" | "not_ready"
+export type LivenessState = "unknown" | "alive" | "dead"
