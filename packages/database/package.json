@@ -1,0 +1,12 @@
+{
+  "name": "@glowify/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Runtime database package for Glowify.",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  }
+}

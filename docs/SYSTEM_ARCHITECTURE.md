@@ -307,3 +307,34 @@ The integration runtime layer lives in `packages/integration-runtime` and define
 - It models integration session state, connection references, connector capability metadata, synchronization job metadata, webhook metadata, and execution metadata only.
 - It does not introduce runtime implementation, HTTP, SDKs, persistence, queues, filesystem access, networking, or business logic.
 - It is intended to compose with bootstrap, adapters, messaging, API gateway, authentication, governance, orchestration, runtime, SDK, and developer-experience contracts through metadata-only interfaces.
+
+## Package Boundaries
+
+Glowify uses two distinct package categories.
+
+- Contract packages define types, interfaces, schemas, metadata, and contract tokens only.
+- Runtime packages define concrete implementations, clients, workers, adapters, and platform integrations.
+- Contract packages must remain implementation-free.
+- Runtime packages may contain implementation details, but they should still expose stable entry points and metadata.
+
+### Contract Packages
+
+Examples include `domain`, `cqrs`, `events`, `workflows`, `authorization`, `authentication`, `governance`, `billing`, `storage`, `runtime`, `sdk`, `messaging`, `api-gateway`, `adapters`, `orchestration`, `extensions`, and `ai-runtime`.
+
+### Runtime Packages
+
+Examples include `ai`, `worker`, `database`, `integrations`, `infrastructure`, and `secret-management`.
+
+### Dependency Direction
+
+- Applications may depend on runtime packages and contract packages.
+- Runtime packages may depend on contract packages.
+- Runtime packages may depend on other runtime packages only when the dependency direction is intentionally one-way and documented.
+- Contract packages may not depend on runtime packages.
+
+### Forbidden Directions
+
+- A contract package importing runtime implementation code.
+- A lower-level contract package importing a higher-level application package.
+- A contract package pulling in database clients, queue workers, HTTP clients, filesystem code, or provider SDKs.
+- A runtime package exporting behavior that forces hidden side effects into a contract-only layer.

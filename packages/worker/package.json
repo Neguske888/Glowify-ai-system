@@ -9,5 +9,11 @@
     "firebase-admin": "^13.10.0",
     "ioredis": "^5.10.1",
     "stripe": "^22.1.1"
+  },
+  "description": "Runtime worker package for Glowify.",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
   }
 }
