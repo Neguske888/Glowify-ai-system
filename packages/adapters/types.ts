@@ -1,0 +1,9 @@
+export type AdapterId = string
+export type ProviderId = string
+export type ConnectorId = string
+export type FeatureId = string
+export type VersionString = string
+export type Timestamp = string
+export type LifecycleState = "draft" | "registered" | "active" | "paused" | "disabled" | "retired"
+export type HealthState = "unknown" | "healthy" | "degraded" | "unhealthy"
+export type CompatibilityState = "compatible" | "incompatible" | "partial"

@@ -203,3 +203,59 @@ The billing layer lives in `packages/billing` and defines provider-agnostic cont
 
 - It models billing metadata, lifecycle state, and contract surfaces only.
 - It does not implement runtime behavior, persistence, networking, or payment provider integrations.
+
+## AI Agent Framework Layer
+
+The AI agent framework layer lives in `packages/agents` and defines provider-agnostic contracts for agents, lifecycle state, planning, reasoning, execution, tasks, tools, memory, knowledge, sessions, conversations, collaboration, orchestration, coordination, evaluation, feedback, reflection, policies, registries, repositories, and services.
+
+- It models agent behavior and coordination metadata only.
+- It does not introduce runtime implementations, provider SDKs, networking, persistence, authentication, or business logic.
+- It is intended to compose with CQRS, workflows, events, observability, bootstrap, and domain contracts without binding the platform to a specific AI runtime.
+
+## Plugin & Extension Framework Layer
+
+The plugin and extension framework layer lives in `packages/extensions` and defines provider-agnostic contracts for extensions, plugins, modules, manifests, metadata, capabilities, discovery, registration, catalogs, installation, activation, deactivation, lifecycle events, hooks, middleware, interceptors, configuration, settings, permissions, security, sandboxing, repositories, and services.
+
+- It models extension metadata, compatibility, dependency declarations, and lifecycle state only.
+- It does not introduce runtime loading, dynamic imports, networking, persistence, filesystem operations, SDKs, or business logic.
+- It is intended to compose with bootstrap, domain, CQRS, workflows, events, observability, and infrastructure contracts without binding the platform to a specific plugin runtime.
+
+## Orchestration Layer
+
+The orchestration layer lives in `packages/orchestration` and defines provider-agnostic contracts for orchestration, execution metadata, execution plans and results, policies, commands, tasks, pipelines, stages, approvals, checkpoints, compensation, rollback, retry, timeout, routing, coordination, middleware, interceptors, lifecycle state, events, metrics, diagnostics, repositories, and services.
+
+- It models orchestration identifiers, execution state transitions, approval state, policy metadata, timestamps, and versioning only.
+- It does not introduce runtime orchestration logic, networking, persistence, queues, schedulers, filesystem access, SDKs, or business logic.
+- It is intended to compose with bootstrap, infrastructure, domain, workflows, events, CQRS, observability, authorization, configuration, AI, notifications, and extensions through contracts only.
+
+## Governance Layer
+
+The governance layer lives in `packages/governance` and defines provider-agnostic contracts for policies, policy sets, policy evaluation, compliance, audit, risk, classification, retention, consent, privacy, residency, encryption, key policy, data access, data sharing, AI governance, moderation, safety, trust, approvals, exceptions, reviews, registries, repositories, services, and lifecycle state.
+
+- It models governance identifiers, compliance frameworks, approval state, audit metadata, risk scores, trust levels, effective dates, timestamps, and versioning only.
+- It does not introduce runtime enforcement, persistence, networking, filesystem access, SDKs, middleware implementations, or business logic.
+- It is intended to compose with domain, orchestration, workflows, events, CQRS, authorization, configuration, observability, notifications, storage, billing, AI, extensions, and bootstrap through contracts only.
+
+## Authentication & Identity Layer
+
+The authentication and identity layer lives in `packages/authentication` and defines provider-agnostic contracts for identity, users, accounts, profiles, sessions, devices, credentials, password policies, verification, MFA, passkeys, WebAuthn, OAuth, OIDC, SAML, social login, magic links, API keys, service accounts, tenants, organizations, memberships, invitations, impersonation, security events, login attempts, lockout, rate limiting, risk, trust scores, recovery, audit metadata, registries, repositories, services, and lifecycle state.
+
+- It models identity metadata, authentication state, verification state, provider metadata, and recovery metadata only.
+- It does not introduce runtime authentication logic, persistence, networking, cookies, sessions, cryptographic implementation, middleware, or SDK integrations.
+- It is intended to compose with domain, orchestration, workflows, events, CQRS, authorization, configuration, observability, notifications, storage, billing, AI, extensions, and bootstrap through contracts only.
+
+## AI Runtime Layer
+
+The AI runtime layer lives in `packages/ai-runtime` and defines provider-agnostic contracts for AI providers, models, chat, completion, embedding, image, audio, video, prompts, conversations, context windows, memory, tool calling, function calling, agent sessions, reasoning, planning, streaming metadata, responses, usage, token accounting, cost tracking, safety, moderation, routing, fallback, load balancing, caching, evaluation, benchmark, telemetry, repositories, services, and registry state.
+
+- It models model families, model capabilities, prompt versions, conversation metadata, token accounting, cost metadata, routing strategies, and safety state only.
+- It does not introduce runtime execution, provider SDKs, networking, HTTP clients, persistence, AI inference, prompt execution, or streaming implementation.
+- It is intended to compose with orchestration, agents, workflows, events, CQRS, observability, configuration, governance, extensions, bootstrap, and domain contracts through metadata-only interfaces.
+
+## Adapter Layer
+
+The adapter layer lives in `packages/adapters` and defines provider-agnostic contracts for adapters, providers, connectors, registries, factories, bindings, mappings, translation, serialization, configuration, health, diagnostics, versioning, compatibility, dependencies, features, repositories, and services.
+
+- It models adapter metadata, provider metadata, connector metadata, lifecycle state, compatibility state, and feature discovery only.
+- It does not introduce runtime logic, SDK implementations, networking, persistence, filesystem operations, authentication logic, or vendor-specific assumptions.
+- It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, authorization, configuration, observability, AI, notifications, storage, billing, extensions, and governance through contracts only.
