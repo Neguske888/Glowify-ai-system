@@ -6,7 +6,11 @@ import {
   User,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
+  sendPasswordResetEmail,
+  updateProfile,
   setPersistence,
   browserLocalPersistence
 } from 'firebase/auth';
@@ -46,25 +50,80 @@ setPersistence(auth, browserLocalPersistence).catch(err => {
 
 export const googleProvider = new GoogleAuthProvider();
 
+const parseAuthError = (code: string): string => {
+  const map: Record<string, string> = {
+    'auth/user-not-found':         'No account found with this email.',
+    'auth/wrong-password':         'Incorrect password. Please try again.',
+    'auth/invalid-credential':     'Invalid email or password.',
+    'auth/invalid-email':          'Please enter a valid email address.',
+    'auth/email-already-in-use':   'An account with this email already exists.',
+    'auth/weak-password':          'Password must be at least 6 characters.',
+    'auth/popup-closed-by-user':   'Sign-in popup closed. Please try again.',
+    'auth/popup-blocked':          'Popup blocked. Allow popups for this site.',
+    'auth/network-request-failed': 'Network error. Check your connection.',
+    'auth/too-many-requests':      'Too many attempts. Please wait and try again.',
+    'auth/operation-not-allowed':  'This sign-in method is not enabled in Firebase Console.',
+    'auth/cancelled-popup-request':'Sign-in cancelled. Please try again.',
+  }
+  return map[code] || `Error (${code}). Please try again.`
+}
+
 export const firebaseAuth = {
+  signInWithEmail: async (email: string, password: string) => {
+    try {
+      if (!auth) throw new Error('Firebase auth not initialized')
+      const result = await signInWithEmailAndPassword(auth, email, password)
+      return { user: result.user, error: null }
+    } catch (err: any) {
+      return { user: null, error: parseAuthError(err.code) }
+    }
+  },
+
+  signUpWithEmail: async (email: string, password: string, displayName?: string, storeName?: string) => {
+    try {
+      if (!auth) throw new Error('Firebase auth not initialized')
+      const result = await createUserWithEmailAndPassword(auth, email, password)
+      if (displayName) await updateProfile(result.user, { displayName })
+      await firestoreHelpers.createUserProfile(result.user, { displayName, storeName })
+      await firestoreHelpers.seedMockData(result.user.uid)
+      return { user: result.user, error: null }
+    } catch (err: any) {
+      return { user: null, error: parseAuthError(err.code) }
+    }
+  },
+
   signInWithGoogle: async () => {
-    if (!auth) throw new Error("Firebase Auth not initialized");
-    return signInWithPopup(auth, googleProvider);
+    try {
+      if (!auth) throw new Error('Firebase Auth not initialized')
+      const result = await signInWithPopup(auth, googleProvider)
+      return { user: result.user, error: null }
+    } catch (err: any) {
+      return { user: null, error: parseAuthError(err.code) }
+    }
   },
 
   signOut: async () => {
-    if (!auth) throw new Error("Firebase Auth not initialized");
-    return firebaseSignOut(auth);
+    if (!auth) throw new Error('Firebase Auth not initialized')
+    return firebaseSignOut(auth)
+  },
+
+  resetPassword: async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email)
+      return { error: null }
+    } catch (err: any) {
+      return { error: parseAuthError(err.code) }
+    }
   },
 
   onAuthStateChanged: (callback: (user: User | null) => void) => {
     if (!auth) {
-      setTimeout(() => callback(null), 0);
-      return () => {};
+      setTimeout(() => callback(null), 0)
+      return () => {}
     }
-    return onAuthStateChanged(auth, callback);
+    return onAuthStateChanged(auth, callback)
   },
-};
+}
 
 export const firestoreHelpers = {
   profileExists: async (uid: string) => {
@@ -115,6 +174,10 @@ export const firestoreHelpers = {
     } catch (err: any) {
       return [];
     }
+  },
+
+  seedMockData: async (_uid: string) => {
+    return;
   },
 
   // Subscribe to real-time telemetry/logs
