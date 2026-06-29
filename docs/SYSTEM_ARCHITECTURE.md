@@ -291,3 +291,11 @@ The runtime kernel layer lives in `packages/runtime` and defines provider-agnost
 - It models lifecycle state, capability metadata, dependency metadata, resource metadata, and execution metadata only.
 - It does not introduce runtime behavior, filesystem access, networking, persistence, SDK imports, or assumptions about Node.js, Bun, Deno, Cloudflare Workers, Vercel, or any other execution host.
 - It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, observability, configuration, governance, adapters, messaging, API gateway, authentication, and SDK contracts through metadata-only interfaces.
+
+## Developer Experience Layer
+
+The developer experience layer lives in `packages/developer-experience` and defines provider-agnostic contracts for workspaces, projects, templates, scaffolding, generators, code generation, blueprints, presets, profiles, CLI metadata, commands, arguments, options, prompts, wizards, environments, tooling, plugins, extensions, manifests, validation, diagnostics, formatting, linting, analysis, documentation, examples, snippets, migrations, compatibility, versioning, registries, repositories, providers, and services.
+
+- It models workspace metadata, project metadata, template metadata, CLI metadata, plugin metadata, extension metadata, and compatibility state only.
+- It does not introduce runtime behavior, CLI implementation, code generation implementation, filesystem access, networking, persistence, SDK imports, or business logic.
+- It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, observability, governance, adapters, messaging, API gateway, authentication, SDK, and runtime contracts through metadata-only interfaces.
