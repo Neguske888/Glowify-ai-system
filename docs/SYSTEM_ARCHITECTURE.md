@@ -259,3 +259,11 @@ The adapter layer lives in `packages/adapters` and defines provider-agnostic con
 - It models adapter metadata, provider metadata, connector metadata, lifecycle state, compatibility state, and feature discovery only.
 - It does not introduce runtime logic, SDK implementations, networking, persistence, filesystem operations, authentication logic, or vendor-specific assumptions.
 - It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, authorization, configuration, observability, AI, notifications, storage, billing, extensions, and governance through contracts only.
+
+## SDK Layer
+
+The SDK layer lives in `packages/sdk` and defines provider-agnostic contracts for SDKs, clients, factories, configuration, context, requests, responses, endpoints, operations, transport, middleware, interceptors, serialization, deserialization, pagination, retry, timeout, authentication, authorization, caching, telemetry, diagnostics, versioning, compatibility, registries, repositories, and services.
+
+- It models SDK metadata, client metadata, request and response metadata, endpoint metadata, operation metadata, transport metadata, and compatibility state only.
+- It does not introduce runtime logic, networking, persistence, filesystem access, HTTP implementation, transport implementation, or vendor-specific assumptions.
+- It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, authorization, configuration, observability, AI, notifications, storage, billing, extensions, governance, adapters, and authentication through contracts only.

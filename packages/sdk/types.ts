@@ -1,0 +1,10 @@
+export type SDKId = string
+export type ClientId = string
+export type EndpointId = string
+export type OperationId = string
+export type RequestId = string
+export type ResponseId = string
+export type VersionString = string
+export type Timestamp = string
+export type CompatibilityState = "compatible" | "incompatible" | "partial"
+export type TransportProtocol = "http" | "grpc" | "websocket" | "custom"
