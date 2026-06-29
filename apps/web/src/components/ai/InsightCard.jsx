@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export function InsightCard({ insight }) {
   const [status, setStatus] = useState(insight.status || 'pending');
