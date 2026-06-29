@@ -299,3 +299,11 @@ The developer experience layer lives in `packages/developer-experience` and defi
 - It models workspace metadata, project metadata, template metadata, CLI metadata, plugin metadata, extension metadata, and compatibility state only.
 - It does not introduce runtime behavior, CLI implementation, code generation implementation, filesystem access, networking, persistence, SDK imports, or business logic.
 - It is intended to compose with bootstrap, domain, orchestration, workflows, events, CQRS, observability, governance, adapters, messaging, API gateway, authentication, SDK, and runtime contracts through metadata-only interfaces.
+
+## Integration Runtime Layer
+
+The integration runtime layer lives in `packages/integration-runtime` and defines provider-agnostic contracts for integrations, integration sessions, integration providers, connectors, connector instances, connector capabilities, connector configuration, connections, credential references, secret references, installations, synchronization, synchronization jobs, imports, exports, mappings, transformations, webhook metadata, webhook events, webhook subscriptions, polling, scheduling, execution, execution results, retry, failures, health, diagnostics, metrics, repositories, registries, and services.
+
+- It models integration session state, connection references, connector capability metadata, synchronization job metadata, webhook metadata, and execution metadata only.
+- It does not introduce runtime implementation, HTTP, SDKs, persistence, queues, filesystem access, networking, or business logic.
+- It is intended to compose with bootstrap, adapters, messaging, API gateway, authentication, governance, orchestration, runtime, SDK, and developer-experience contracts through metadata-only interfaces.
