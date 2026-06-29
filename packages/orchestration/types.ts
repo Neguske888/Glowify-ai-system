@@ -1,0 +1,16 @@
+export type OrchestrationId = string
+export type ExecutionId = string
+export type CorrelationId = string
+export type CausationId = string
+export type TenantId = string
+export type OrganizationId = string
+export type WorkflowId = string
+export type PipelineId = string
+export type TaskId = string
+export type ActorId = string
+export type AgentId = string
+export type ExtensionId = string
+export type PriorityLevel = "low" | "normal" | "high" | "critical"
+export type ExecutionMode = "automated" | "semi_automated" | "manual" | "distributed"
+export type Timestamp = string
+export type VersionString = string

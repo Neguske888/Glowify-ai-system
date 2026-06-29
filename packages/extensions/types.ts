@@ -1,0 +1,10 @@
+export type ExtensionIdentifier = string
+export type PluginIdentifier = string
+export type ModuleIdentifier = string
+export type CapabilityIdentifier = string
+export type HookIdentifier = string
+export type EventIdentifier = string
+export type VersionString = string
+export type SemVerRange = string
+export type CatalogName = string
+export type PermissionName = string

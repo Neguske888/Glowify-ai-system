@@ -1,0 +1,15 @@
+export enum ExecutionState {
+  Pending = "pending",
+  Queued = "queued",
+  Scheduled = "scheduled",
+  Running = "running",
+  Waiting = "waiting",
+  Paused = "paused",
+  AwaitingApproval = "awaiting_approval",
+  Retrying = "retrying",
+  Compensating = "compensating",
+  Completed = "completed",
+  Cancelled = "cancelled",
+  Failed = "failed",
+  TimedOut = "timed_out",
+}
